@@ -14,7 +14,7 @@ A live demo is available at <https://osmzhlab.uni-muenster.de/shiny/demo/>.
 
 For the original feature set and data preparation workflows, refer to the upstream cerebroApp documentation at <https://romanhaa.github.io/cerebroApp/> — everything described there works the same way here.
 
-*A community fork of [cerebroApp](https://github.com/romanhaa/cerebroApp) by Roman Hillje, developed and maintained by [mihem](https://github.com/mihem).*
+*A community fork of [cerebroApp](https://github.com/romanhaa/cerebroApp) by Roman Hillje, developed and maintained by [mihem](https://github.com/mihem). and [duocang](https://github.com/duocang)*
 
 ## Contents
 
@@ -35,7 +35,7 @@ For the original feature set and data preparation workflows, refer to the upstre
 ## 1. Installation
 
 ```r
-remotes::install_github('mihem/CerebroNexus')
+remotes::install_github('mzhlab/CerebroNexus')
 ```
 
 ## 2. Features
@@ -187,4 +187,4 @@ See [`tests/README.md`](tests/README.md) for the full layout, the `inst_dir` res
 
 ## 4. License
 
-MIT — see [LICENSE.md](LICENSE.md). Original cerebroApp © Roman Hillje; CerebroNexus fork by [mihem](https://github.com/mihem).
+MIT — see [LICENSE.md](LICENSE.md). Original cerebroApp © Roman Hillje; CerebroNexus matained by [mihem](https://github.com/mihem) and [duocang](https://github.com/duocang).
