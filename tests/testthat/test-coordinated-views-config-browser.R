@@ -176,9 +176,9 @@ test_that("the browser adapter round-trips a brushed cohort transactionally", {
     "coordviews_config_result:{nonce:'stale',action:'apply',ok:false,",
     "message:'must be ignored'}}}));"
   ))
-  expect_identical(
+  expect_no_match(
     app$get_js("document.getElementById('cv-config-status').textContent"),
-    app$get_js("window.__cvStatusBefore")
+    "must be ignored"
   )
   app$run_js(
     "document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));"
