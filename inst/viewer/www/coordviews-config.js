@@ -124,6 +124,8 @@
     var copy = snapshotButton('Copy link', function () {
       if (copy.dataset.copying === 'true') return;
       copy.dataset.copying = 'true';
+      copy.textContent = 'Copied ✓';
+      status('Share link copied.', 'success');
       window.cerebroClipboard.copyText(shareUrl(record.token)).then(function (ok) {
         copy.textContent = ok ? 'Copied ✓' : 'Copy failed';
         status(ok ? 'Share link copied.' : 'Clipboard access was blocked.', ok ? 'success' : 'error');
@@ -268,7 +270,12 @@
     var nonce = nextNonce();
     pendingShare = { nonce: nonce, action: action, payload: null, retried: false };
     if (pendingShareTimer) window.clearTimeout(pendingShareTimer);
-    status(action === 'share_open' ? 'Opening shared view…' : 'Creating share link…', 'working');
+    status(
+      action === 'share_open'
+        ? 'Opening shared view…'
+        : 'Share link ready. Saving in the background…',
+      'working'
+    );
     var payload = { nonce: nonce, action: action };
     if (action === 'share_create') {
       payload.prepared_id = prepared.prepared_id;
@@ -311,15 +318,26 @@
       );
       return;
     }
+    var token = randomShareToken();
+    if (!token) {
+      status('This browser cannot create a secure share link.', 'error');
+      return;
+    }
+    latestShare = {
+      token: token,
+      expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+      fingerprint: currentFingerprint()
+    };
     sharePreparing = true;
     renderShareResult(latestShare);
-    status('Preparing view…', 'working');
+    status('Share link ready. Saving in the background…', 'working');
     preparedCache.get().then(function (prepared) {
       sharePreparing = false;
       renderShareResult(latestShare);
-      sendShareRequest(action, record, prepared);
+      sendShareRequest(action, { token: token }, prepared);
     }, function (error) {
       sharePreparing = false;
+      if (latestShare && latestShare.token === token) latestShare = null;
       renderShareResult(latestShare);
       status(error && error.message ? error.message : 'The view could not be prepared.', 'error');
     });
