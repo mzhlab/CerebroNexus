@@ -624,7 +624,6 @@ cv_config_normalize <- function(config, cells) {
       "filters",
       "hidden_levels",
       "display",
-      "focus_space",
       "lenses",
       "spatial_backgrounds",
       "trekker"
@@ -748,10 +747,6 @@ cv_config_normalize <- function(config, cells) {
           c("stack", "bands")
         )
       ),
-      focus_space = cv_config_nullable_string(
-        view$focus_space,
-        "$.view.focus_space"
-      ),
       lenses = cv_config_normalize_lenses(view$lenses, "$.view.lenses"),
       spatial_backgrounds = cv_config_normalize_backgrounds(
         view$spatial_backgrounds,
@@ -798,15 +793,6 @@ cv_config_normalize <- function(config, cells) {
     cv_config_abort(
       "invalid_reference",
       "The selection region is not part of this workspace."
-    )
-  }
-  if (
-    !is.null(normalized_view$focus_space) &&
-      !normalized_view$focus_space %in% lens_spaces
-  ) {
-    cv_config_abort(
-      "invalid_reference",
-      "The focused lens is not part of this workspace."
     )
   }
   if (length(normalized_view$spatial_backgrounds)) {

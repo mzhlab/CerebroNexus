@@ -185,17 +185,13 @@ test_that("Linked views chooses its grid from both viewport dimensions", {
   expect_false(grepl('id = "cv-workspace-overview"', ui, fixed = TRUE))
 })
 
-test_that("restoring an overview cannot focus an unused panel", {
+test_that("portable Linked views do not serialize focus layout", {
   js_file <- file.path(dirname(bundle_file), "..", "www", "coordviews.js")
   skip_if_not(file.exists(js_file))
   js <- paste(readLines(js_file, warn = FALSE), collapse = "\n")
 
-  expect_match(js, "if (spaceId != null)", fixed = TRUE)
-  expect_match(
-    js,
-    "panel.spaceId != null && panel.spaceId === spaceId",
-    fixed = TRUE
-  )
+  expect_false(grepl("focus_space", js, fixed = TRUE))
+  expect_false(grepl("setConfigFocus", js, fixed = TRUE))
 })
 
 test_that("Linked views keeps replacement controls contextual and user-facing", {

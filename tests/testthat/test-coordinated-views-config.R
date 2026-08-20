@@ -69,7 +69,6 @@ valid_linked_view_config <- function() {
         selection_mode = "lasso",
         clone_layout = "stack"
       ),
-      focus_space = "projection::umap",
       lenses = list(
         list(
           space = "projection::umap",
@@ -365,10 +364,6 @@ test_that("cross-field references must describe one coherent workspace", {
 
   config <- valid_linked_view_config()
   config$view$active_spatial <- "not-selected"
-  expect_config_error(config, "invalid_reference")
-
-  config <- valid_linked_view_config()
-  config$view$focus_space <- "projection::missing"
   expect_config_error(config, "invalid_reference")
 
   config <- valid_linked_view_config()

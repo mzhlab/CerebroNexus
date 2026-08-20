@@ -281,7 +281,6 @@ test_that("the browser adapter round-trips a brushed cohort transactionally", {
     "window.__cvContext.view.display={percentage_cells:100,point_size:2.2,",
     "point_opacity:.35,group_labels:false,selection_mode:'box',",
     "clone_layout:'stack'};",
-    "window.__cvContext.view.focus_space='projection::pca';",
     "window.__cvContext.view.lenses=window.__cvContext.view.lenses.filter(",
     "function(x){return x.space!=='projection::pca';});",
     "window.__cvContext.view.lenses[0].viewport={cx:.45,cy:.55,span:.7};",
@@ -304,7 +303,6 @@ test_that("the browser adapter round-trips a brushed cohort transactionally", {
   )
   expect_true(app$get_js(paste0(
     "window.__cvContextAfter.view.projections.join(',')==='umap,pca'&&",
-    "window.__cvContextAfter.view.focus_space==='projection::pca'&&",
     "window.__cvContextAfter.view.display.point_size===2.2&&",
     "window.__cvContextAfter.view.display.point_opacity===.35&&",
     "window.__cvContextAfter.view.display.group_labels===false&&",
