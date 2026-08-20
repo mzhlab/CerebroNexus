@@ -41,6 +41,21 @@
   color: var(--cv-text2);
   padding: 2px 0 12px;
 }
+.cv-share-open-status {
+  margin: 10px 0;
+  padding: 10px 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: #1e3a8a;
+  font-size: 13px;
+}
+.cv-share-open-status[hidden] { display: none; }
+.cv-share-open-status.is-error {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+}
 
 /* ---- top control bar (the layout fix) ----------------------------------- */
 .coordviews-page .cv-topbar {

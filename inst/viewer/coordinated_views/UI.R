@@ -198,6 +198,13 @@ tab_coordinated_views <- tabItem(
       id = "cv-meta",
       "Load a single-cell data set to explore its modalities together."
     ),
+    div(
+      id = "cv-share-open-status",
+      class = "cv-share-open-status",
+      role = "status",
+      `aria-live` = "polite",
+      hidden = "hidden"
+    ),
 
     ## ---- horizontal control bar (the layout fix) ------------------------ ##
     div(

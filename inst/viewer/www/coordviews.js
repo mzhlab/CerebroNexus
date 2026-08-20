@@ -1452,7 +1452,9 @@ var focusPanel = null;
   function clearLassos() {
     var any = false;
     panels.forEach(function (p) {
-      if (p.lasso || p.lassoData) { p.lasso = null; p.lassoData = null; any = true; }
+      if (p.lasso || p.lassoData) {
+        p.lasso = null; p.lassoData = null; p.lassoMode = null; any = true;
+      }
     });
     return any;
   }
@@ -1469,7 +1471,7 @@ var focusPanel = null;
     }
     return {
       space: selectedPanel.spaceId,
-      mode: selectMode === 'box' ? 'box' : 'lasso',
+      mode: selectedPanel.lassoMode || (selectMode === 'box' ? 'box' : 'lasso'),
       polygon: selectedPanel.lassoData.map(function (point) { return point.slice(); })
     };
   }
@@ -2844,7 +2846,7 @@ var focusPanel = null;
       // a fresh brush supersedes any committed lasso (this panel's is replaced,
       // the other panel's is dropped)
       panels.forEach(function (o) {
-        if (o !== p) { o.lasso = null; o.lassoData = null; }
+        if (o !== p) { o.lasso = null; o.lassoData = null; o.lassoMode = null; }
       });
       p.drag = true; p.moved = false; p.start = pos(e); p.lasso = [p.start]; p.lassoData = null;
     });
@@ -2924,7 +2926,9 @@ var focusPanel = null;
         // a lasso is a different question from "tell me about this one cell"
         if (s.size) {
           pick = null; unpinTip(); closeCard(); setSelection(s, p);
-          p.lassoData = lassoToUnit(p, p.lasso); keep = true;
+          p.lassoData = lassoToUnit(p, p.lasso);
+          p.lassoMode = selectMode === 'box' ? 'box' : 'lasso';
+          keep = true;
         } else { setSelection(null); }
       } else {
         var m = pos(e), k = nearest(p, m[0], m[1]);
@@ -2997,7 +3001,8 @@ var focusPanel = null;
         // the canvas sits in .cv-canvas-wrap now, so the pane is two levels up
         pane: cv.closest('.cv-pane'), surface: cv.closest('.cv-canvas-wrap') || cv,
         spaceId: null, W: 0, H: 0,
-        sx: null, sy: null, ok: null, lasso: null, lassoData: null, drag: false, moved: false,
+        sx: null, sy: null, ok: null, lasso: null, lassoData: null, lassoMode: null,
+        drag: false, moved: false,
         view: null, mini: mini, mctx: null, miniBg: null, miniUnit: null };
       // The minimap is a FIXED size, so its backing store is set once here
       // rather than on every re-fit.
@@ -5346,6 +5351,7 @@ var focusPanel = null;
     selectionPanel.lassoData = state.selectionGeometry.polygon.map(function (point) {
       return point.slice();
     });
+    selectionPanel.lassoMode = state.selectionGeometry.mode;
     drawAll();
   }
   function applyConfigState(config, colourData) {

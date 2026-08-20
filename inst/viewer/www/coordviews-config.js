@@ -46,6 +46,13 @@
     element.classList.toggle('is-success', tone === 'success');
     element.classList.toggle('is-working', tone === 'working');
   }
+  function shareOpenStatus(message, tone) {
+    var element = byId('cv-share-open-status');
+    if (!element) return;
+    element.textContent = message || '';
+    element.hidden = !message;
+    element.classList.toggle('is-error', tone === 'error');
+  }
   function clearPending() {
     if (pendingTimer) window.clearTimeout(pendingTimer);
     pendingTimer = null;
@@ -269,12 +276,8 @@
     var nonce = nextNonce();
     pendingShare = { nonce: nonce, action: action, payload: null, retried: false };
     if (pendingShareTimer) window.clearTimeout(pendingShareTimer);
-    status(
-      action === 'share_open'
-        ? 'Opening shared view…'
-        : 'Share link ready. Saving in the background…',
-      'working'
-    );
+    if (action === 'share_open') shareOpenStatus('Opening shared view…', 'working');
+    else status('Share link ready. Saving in the background…', 'working');
     var payload = { nonce: nonce, action: action };
     if (action === 'share_create') {
       payload.prepared_id = prepared.prepared_id;
@@ -296,7 +299,9 @@
       latestShare = null;
       renderShareResult(latestShare);
       pendingShare = null; pendingShareTimer = null;
-      status('The share link could not be saved. Try again.', 'error');
+      if (action === 'share_open') {
+        shareOpenStatus('The shared view could not be opened. Try again.', 'error');
+      } else status('The share link could not be saved. Try again.', 'error');
     }, 2000);
     Shiny.setInputValue('coordviews_share_request', payload, { priority: 'event' });
   }
@@ -348,7 +353,10 @@
     if (pendingShareTimer) window.clearTimeout(pendingShareTimer);
     pendingShareTimer = null;
     if (result.action !== action) {
-      status('The page received an unexpected share response.', 'error'); return;
+      if (action === 'share_open') {
+        shareOpenStatus('The page received an unexpected share response.', 'error');
+      } else status('The page received an unexpected share response.', 'error');
+      return;
     }
     if (!result.ok) {
       if (action === 'share_create') {
@@ -358,7 +366,10 @@
           preparedCache.clear();
         }
       }
-      status(result.message || 'The share request failed.', 'error'); return;
+      if (action === 'share_open') {
+        shareOpenStatus(result.message || 'The shared view could not be opened.', 'error');
+      } else status(result.message || 'The share request failed.', 'error');
+      return;
     }
     if (action === 'share_create') {
       latestShare = {
@@ -372,17 +383,22 @@
         detail: { token: result.token }
       }));
     } else if (action === 'share_open') {
-      finishApply(result);
-      var url = new URL(window.location.href); url.searchParams.delete('linked_view');
-      window.history.replaceState({}, '', url.toString());
+      if (finishApply(result, true)) {
+        var url = new URL(window.location.href); url.searchParams.delete('linked_view');
+        window.history.replaceState({}, '', url.toString());
+      }
     }
   }
   function openShareFromUrl() {
     if (shareUrlHandled) return;
     var token = new URLSearchParams(window.location.search).get('linked_view');
-    if (!token || !adapter() || !adapter().ready()) return;
+    if (!token) return;
+    var navigation = document.querySelector('a[data-value="coordinated_views"]') ||
+      document.querySelector('a[href="#shiny-tab-coordinated_views"]');
+    var pane = byId('shiny-tab-coordinated_views');
+    if (navigation && (!pane || !pane.classList.contains('active'))) navigation.click();
+    if (!adapter() || !adapter().ready()) return;
     shareUrlHandled = true;
-    openDialog();
     sendShare('share_open', { token: token });
   }
   function openDialog() {
@@ -501,17 +517,20 @@
       }
     }
   }
-  function finishApply(result) {
+  function finishApply(result, shared) {
     try {
       var summary = adapter().apply(result.config, result.colour_data || null);
-      status('Restored ' + summary.selectedCells + ' selected cells and view settings.', 'success');
+      var message = 'Restored ' + summary.selectedCells + ' selected cells and view settings.';
+      if (shared) shareOpenStatus(message, 'success');
+      else status(message, 'success');
+      return true;
     } catch (error) {
-      status(
-        error && error.message
-          ? error.message
-          : 'This configuration uses a view that is unavailable here.',
-        'error'
-      );
+      var message = error && error.message
+        ? error.message
+        : 'This configuration uses a view that is unavailable here.';
+      if (shared) shareOpenStatus(message, 'error');
+      else status(message, 'error');
+      return false;
     }
   }
   function saveSnapshotLocally(name, prepared) {

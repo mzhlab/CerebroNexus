@@ -570,6 +570,7 @@ test_that("Save and share markup is accessible and bundled in every Viewer", {
   )
   expect_match(ui, 'id = "cv-config-dialog"', fixed = TRUE)
   expect_match(ui, 'id = "cv-config-status"', fixed = TRUE)
+  expect_match(ui, 'id = "cv-share-open-status"', fixed = TRUE)
   expect_match(ui, 'id = "cv-snapshot-save"', fixed = TRUE)
   expect_match(ui, 'id = "cv-snapshot-list"', fixed = TRUE)
   expect_match(ui, 'id = "cv-snapshot-name-dialog"', fixed = TRUE)
@@ -619,6 +620,19 @@ test_that("Save and share markup is accessible and bundled in every Viewer", {
   expect_match(controller, "share_open", fixed = TRUE)
   expect_false(grepl("share_revoke", controller, fixed = TRUE))
   expect_match(controller, "linked_view", fixed = TRUE)
+  open_share <- substr(
+    controller,
+    regexpr("function openShareFromUrl()", controller, fixed = TRUE),
+    regexpr("function openDialog()", controller, fixed = TRUE) - 1L
+  )
+  expect_match(
+    open_share,
+    "a[data-value=\"coordinated_views\"]",
+    fixed = TRUE
+  )
+  expect_match(open_share, "navigation.click()", fixed = TRUE)
+  expect_false(grepl("openDialog()", open_share, fixed = TRUE))
+  expect_match(controller, "shareOpenStatus", fixed = TRUE)
   share_section <- substr(
     ui,
     regexpr('id = "cv-config-share"', ui, fixed = TRUE),
@@ -646,6 +660,7 @@ test_that("Save and share markup is accessible and bundled in every Viewer", {
   expect_match(controller, "cerebro:share-created", fixed = TRUE)
   expect_match(engine, "function committedSelectionGeometry()", fixed = TRUE)
   expect_match(engine, "geometry: committedSelectionGeometry()", fixed = TRUE)
+  expect_match(engine, "mode: selectedPanel.lassoMode", fixed = TRUE)
   expect_match(
     engine,
     "selectionPanel.lassoData = state.selectionGeometry.polygon.map",

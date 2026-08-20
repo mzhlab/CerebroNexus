@@ -190,7 +190,18 @@ test_that("the browser adapter round-trips a brushed cohort transactionally", {
 
   app$run_js("window.__cvSaved = window.cerebroLinkedViewsState.capture();")
   selected <- unlist(app$get_js("window.__cvSaved.selection.cells"))
+  saved_geometry <- app$get_js(
+    "JSON.stringify(window.__cvSaved.selection.geometry)"
+  )
   expect_gt(length(selected), 0L)
+  expect_identical(
+    app$get_js("window.__cvSaved.selection.geometry.mode"),
+    "box"
+  )
+  expect_length(
+    app$get_js("window.__cvSaved.selection.geometry.polygon"),
+    4L
+  )
   expect_identical(
     app$get_js("window.__cvSaved.dataset.cell_fingerprint"),
     "md5-cell-set-v1:0123456789abcdef0123456789abcdef"
@@ -213,6 +224,13 @@ test_that("the browser adapter round-trips a brushed cohort transactionally", {
   expect_equal(
     unlist(app$get_value(input = "coordviews_selection")),
     selected
+  )
+  expect_identical(
+    app$get_js(paste0(
+      "JSON.stringify(window.cerebroLinkedViewsState.capture()",
+      ".selection.geometry)"
+    )),
+    saved_geometry
   )
 
   app$run_js(paste0(
