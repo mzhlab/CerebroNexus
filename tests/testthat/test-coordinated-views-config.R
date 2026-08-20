@@ -36,7 +36,16 @@ valid_linked_view_config <- function() {
     ),
     selection = list(
       cells = c("cell-a", "cell-c"),
-      source = "UMAP"
+      source = "UMAP",
+      geometry = list(
+        space = "projection::umap",
+        mode = "lasso",
+        polygon = list(
+          list(0.1, 0.2),
+          list(0.8, 0.2),
+          list(0.4, 0.9)
+        )
+      )
     ),
     view = list(
       colour = list(
@@ -130,6 +139,10 @@ test_that("a version-one configuration round-trips canonically", {
   expect_identical(decoded$schema, "cerebronexus-linked-view")
   expect_identical(decoded$version, 1L)
   expect_identical(decoded$selection$cells, c("cell-a", "cell-c"))
+  expect_identical(
+    decoded$selection$geometry$polygon,
+    list(c(0.1, 0.2), c(0.8, 0.2), c(0.4, 0.9))
+  )
   expect_identical(decoded$view$display$selection_mode, "lasso")
   expect_identical(decoded$view$lenses[[2L]]$rotation$ry, -0.1)
   expect_identical(decoded$view$spatial_backgrounds[[1L]]$image_id, "he-main")
@@ -237,6 +250,24 @@ expect_config_error <- function(config, code) {
   expect_s3_class(error, "cv_config_error")
   expect_identical(error$code, code)
 }
+
+test_that("selection geometry is bounded and structurally valid", {
+  config <- valid_linked_view_config()
+  config$selection$geometry$polygon <- list(list(0, 0), list(1, 1))
+  expect_config_error(config, "too_few_items")
+
+  config <- valid_linked_view_config()
+  config$selection$geometry$polygon[[2L]][[1L]] <- Inf
+  expect_config_error(config, "invalid_type")
+
+  config <- valid_linked_view_config()
+  config$selection$geometry$mode <- "ellipse"
+  expect_config_error(config, "invalid_value")
+
+  config <- valid_linked_view_config()
+  config$selection$geometry$space <- ""
+  expect_config_error(config, "invalid_value")
+})
 
 test_that("unsupported schema versions and unknown fields are rejected", {
   config <- valid_linked_view_config()

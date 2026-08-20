@@ -187,6 +187,33 @@ cv_config_choice <- function(value, path, choices) {
   value
 }
 
+cv_config_normalize_polygon <- function(value, path) {
+  points <- cv_config_array_values(value, path)
+  if (length(points) < 3L) {
+    cv_config_abort(
+      "too_few_items",
+      paste0(path, " must have at least 3 points.")
+    )
+  }
+  if (length(points) > 10000L) {
+    cv_config_abort("too_many_items", paste0(path, " has too many points."))
+  }
+  lapply(seq_along(points), function(index) {
+    point_path <- paste0(path, "[", index, "]")
+    coordinates <- cv_config_array_values(points[[index]], point_path)
+    if (length(coordinates) != 2L) {
+      cv_config_abort(
+        "invalid_type",
+        paste0(point_path, " must be an [x, y] pair.")
+      )
+    }
+    c(
+      cv_config_number(coordinates[[1L]], paste0(point_path, "[1]"), -1e9, 1e9),
+      cv_config_number(coordinates[[2L]], paste0(point_path, "[2]"), -1e9, 1e9)
+    )
+  })
+}
+
 cv_config_require_json_array <- function(value, path) {
   if (!is.list(value) || !is.null(names(value))) {
     cv_config_abort("invalid_type", paste0(path, " must be an array."))
@@ -202,6 +229,21 @@ cv_config_check_json_array_shapes <- function(config) {
   view <- config$view
   if (is.list(selection) && !is.null(names(selection))) {
     cv_config_require_json_array(selection$cells, "$.selection.cells")
+    geometry <- selection$geometry
+    if (is.list(geometry) && !is.null(names(geometry))) {
+      cv_config_require_json_array(
+        geometry$polygon,
+        "$.selection.geometry.polygon"
+      )
+      if (is.list(geometry$polygon) && is.null(names(geometry$polygon))) {
+        for (index in seq_along(geometry$polygon)) {
+          cv_config_require_json_array(
+            geometry$polygon[[index]],
+            paste0("$.selection.geometry.polygon[", index, "]")
+          )
+        }
+      }
+    }
   }
   if (!is.list(view) || is.null(names(view))) {
     return(invisible(config))
@@ -550,8 +592,13 @@ cv_config_normalize <- function(config, cells) {
 
   selection <- cv_config_record(
     config$selection,
-    c("cells", "source"),
+    c("cells", "source", "geometry"),
     path = "$.selection"
+  )
+  geometry <- cv_config_record(
+    selection$geometry,
+    c("space", "mode", "polygon"),
+    path = "$.selection.geometry"
   )
   selected_cells <- cv_config_string_array(
     selection$cells,
@@ -617,7 +664,25 @@ cv_config_normalize <- function(config, cells) {
     ),
     selection = list(
       cells = selected_cells,
-      source = cv_config_nullable_string(selection$source, "$.selection.source")
+      source = cv_config_nullable_string(
+        selection$source,
+        "$.selection.source"
+      ),
+      geometry = list(
+        space = cv_config_string(
+          geometry$space,
+          "$.selection.geometry.space"
+        ),
+        mode = cv_config_choice(
+          geometry$mode,
+          "$.selection.geometry.mode",
+          c("lasso", "box")
+        ),
+        polygon = cv_config_normalize_polygon(
+          geometry$polygon,
+          "$.selection.geometry.polygon"
+        )
+      )
     ),
     view = list(
       colour = list(
