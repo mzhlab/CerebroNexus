@@ -19,6 +19,19 @@ test_that("NULL keeps Viewer authentication disabled", {
   expect_null(CerebroNexus:::.compileViewerAuth(NULL))
 })
 
+test_that("createShinyApp exposes built-in Admin credential defaults", {
+  arguments <- formals(CerebroNexus::createShinyApp)
+  expect_identical(arguments$admin_account, "admin")
+  expect_identical(arguments$admin_password, "admin123")
+  expect_error(
+    createShinyApp(
+      cerebro_data = c(Dataset = "missing.crb"),
+      admin_password = ""
+    ),
+    "admin_password"
+  )
+})
+
 test_that("authentication accepts an existing encrypted database", {
   path <- auth_test_database()
   withr::local_envvar(CEREBRO_AUTH_TEST_KEY = "test database passphrase")
@@ -364,6 +377,8 @@ test_that("createShinyApp bundles only encrypted authentication configuration", 
       credentials = fixture$credentials,
       passphrase_env = "CEREBRO_AUTH_TEST_KEY"
     ),
+    admin_account = "owner",
+    admin_password = "owner-password",
     launch_browser = FALSE,
     verbose = FALSE
   )
@@ -377,7 +392,10 @@ test_that("createShinyApp bundles only encrypted authentication configuration", 
   expect_true(file.exists(bundled))
   expect_identical(readBin(bundled, "raw", n = 3L), as.raw(c(0x53, 0x51, 0x4c)))
 
-  config <- readRDS(file.path(app, "cerebro_config.rds"))$.viewer_auth
+  app_config <- readRDS(file.path(app, "cerebro_config.rds"))
+  expect_identical(app_config$admin_account, "owner")
+  expect_identical(app_config$admin_password, "owner-password")
+  config <- app_config$.viewer_auth
   expect_identical(
     config,
     list(

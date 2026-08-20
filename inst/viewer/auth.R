@@ -6,17 +6,6 @@
   isTRUE(value) || identical(value, "TRUE")
 }
 
-.viewer_auth_default_login <- function(user, password) {
-  is.character(user) &&
-    length(user) == 1L &&
-    !is.na(user) &&
-    is.character(password) &&
-    length(password) == 1L &&
-    !is.na(password) &&
-    identical(user, "admin") &&
-    identical(password, "admin123")
-}
-
 .viewer_auth_validate_config <- function(config) {
   expected <- c(
     "credentials_path",
@@ -249,16 +238,26 @@ viewer_auth_apply <- function(ui, server, config, cerebro_root = ".") {
     )
   }
   configured_checker <- checker
+  admin_config <- get0(
+    "Cerebro.options",
+    envir = .GlobalEnv,
+    inherits = FALSE,
+    ifnotfound = list()
+  )
+  if (is.null(admin_config)) {
+    admin_config <- list()
+  }
+  admin_credentials <- viewer_admin_credentials(admin_config)
   default_checker <- shinymanager::check_credentials(
     data.frame(
-      user = "admin",
-      password = "admin123",
+      user = admin_credentials$account,
+      password = admin_credentials$password,
       admin = TRUE,
       stringsAsFactors = FALSE
     )
   )
   checker <- function(user, password) {
-    if (.viewer_auth_default_login(user, password)) {
+    if (viewer_admin_default_login(user, password, admin_config)) {
       default_checker(user, password)
     } else {
       configured_checker(user, password)
@@ -298,7 +297,7 @@ viewer_auth_apply <- function(ui, server, config, cerebro_root = ".") {
         length(user) == 1L &&
         !is.na(user) &&
         nzchar(user) &&
-        (identical(user, "admin") ||
+        (identical(user, admin_credentials$account) ||
           !.viewer_auth_password_change_required(
             database,
             config$passphrase_env,

@@ -27,6 +27,51 @@ test_that("the built-in Administrator credentials are available", {
   ))
 })
 
+test_that("Admin credentials support defaults and server-side overrides", {
+  expect_identical(
+    viewer_admin_core$viewer_admin_credentials(list()),
+    list(account = "admin", password = "admin123")
+  )
+  custom <- list(admin_account = "owner", admin_password = "private-pass")
+  expect_identical(
+    viewer_admin_core$viewer_admin_credentials(custom),
+    list(account = "owner", password = "private-pass")
+  )
+  expect_true(viewer_admin_core$viewer_admin_default_login(
+    "owner",
+    "private-pass",
+    custom
+  ))
+  expect_false(viewer_admin_core$viewer_admin_default_login(
+    "admin",
+    "admin123",
+    custom
+  ))
+  for (value in list("", NA_character_, character(), c("a", "b"), 1)) {
+    expect_error(
+      viewer_admin_core$viewer_admin_credentials(list(admin_password = value)),
+      "Admin credential configuration"
+    )
+  }
+})
+
+test_that("repository Viewer reads Admin credentials from R options", {
+  source_app <- paste(
+    readLines(file.path(viewer_admin_inst, "app.R"), warn = FALSE),
+    collapse = "\n"
+  )
+  expect_match(
+    source_app,
+    'getOption("cerebro.admin.account", "admin")',
+    fixed = TRUE
+  )
+  expect_match(
+    source_app,
+    'getOption("cerebro.admin.password", "admin123")',
+    fixed = TRUE
+  )
+})
+
 test_that("both Viewer entrypoints install the Admin HTTP route", {
   source_app <- paste(
     readLines(file.path(viewer_admin_inst, "app.R"), warn = FALSE),

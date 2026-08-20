@@ -1,5 +1,14 @@
 viewer_auth_runtime_environment <- function() {
   runtime <- new.env(parent = globalenv())
+  core_candidates <- c(
+    file.path("inst", "viewer", "admin", "core.R"),
+    testthat::test_path("../../inst/viewer/admin/core.R"),
+    system.file("viewer/admin/core.R", package = "CerebroNexus")
+  )
+  sys.source(
+    core_candidates[file.exists(core_candidates)][[1L]],
+    envir = runtime
+  )
   candidates <- c(
     file.path("inst", "viewer", "auth.R"),
     testthat::test_path("../../inst/viewer/auth.R"),
@@ -130,6 +139,24 @@ test_that("Viewer authentication fails closed when branding is incomplete", {
 test_that("Viewer starts after server-authoritative authentication", {
   skip_if_not_installed("shinymanager", minimum_version = "1.1.0")
   runtime <- viewer_auth_runtime_environment()
+  old_options <- get0("Cerebro.options", envir = .GlobalEnv, inherits = FALSE)
+  on.exit(
+    {
+      if (is.null(old_options)) {
+        if (exists("Cerebro.options", envir = .GlobalEnv, inherits = FALSE)) {
+          rm("Cerebro.options", envir = .GlobalEnv)
+        }
+      } else {
+        assign("Cerebro.options", old_options, envir = .GlobalEnv)
+      }
+    },
+    add = TRUE
+  )
+  assign(
+    "Cerebro.options",
+    list(admin_account = "owner", admin_password = "owner-password"),
+    envir = .GlobalEnv
+  )
   root <- withr::local_tempdir()
   database <- file.path(root, "private-data", "auth", "credentials.sqlite")
   dir.create(dirname(database), recursive = TRUE)
@@ -176,8 +203,8 @@ test_that("Viewer starts after server-authoritative authentication", {
     expect_true(is.function(captured_checker))
     expect_true(captured_checker("alice", "alice-login-password")$result)
     expect_false(captured_checker("alice", "wrong-password")$result)
-    expect_true(captured_checker("admin", "admin123")$result)
-    expect_false(captured_checker("admin", "wrong-password")$result)
+    expect_true(captured_checker("owner", "owner-password")$result)
+    expect_false(captured_checker("admin", "admin123")$result)
     expect_identical(starts, 0L)
     auth_state$admin <- "TRUE"
     auth_state$user <- "alice"

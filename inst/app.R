@@ -19,6 +19,8 @@ Cerebro.options <<- list(
   ## installed CerebroNexus package. Exported apps receive this value in
   ## cerebro_config.rds when createShinyApp() builds them.
   "cerebro_version" = "5.0.0",
+  "admin_account" = getOption("cerebro.admin.account", "admin"),
+  "admin_password" = getOption("cerebro.admin.password", "admin123"),
   ## This bundled app ships several distinct demo data sets so the sidebar
   ## "Select dataset:" switcher is visible out of the box: switching changes
   ## the linked workspace, cell-type composition, and conditional specialist

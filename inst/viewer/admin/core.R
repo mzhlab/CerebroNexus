@@ -8,15 +8,37 @@ viewer_admin_route <- function(path) {
     !grepl("/admin/.+", path)
 }
 
-viewer_admin_default_login <- function(user, password) {
+viewer_admin_credentials <- function(config = list()) {
+  if (!is.list(config)) {
+    stop("Admin credential configuration is invalid.", call. = FALSE)
+  }
+  scalar <- function(value) {
+    is.character(value) && length(value) == 1L && !is.na(value) && nzchar(value)
+  }
+  account <- config[["admin_account"]]
+  password <- config[["admin_password"]]
+  if (is.null(account)) {
+    account <- "admin"
+  }
+  if (is.null(password)) {
+    password <- "admin123"
+  }
+  if (!scalar(account) || !scalar(password)) {
+    stop("Admin credential configuration is invalid.", call. = FALSE)
+  }
+  list(account = account, password = password)
+}
+
+viewer_admin_default_login <- function(user, password, config = list()) {
+  credentials <- viewer_admin_credentials(config)
   is.character(user) &&
     length(user) == 1L &&
     !is.na(user) &&
     is.character(password) &&
     length(password) == 1L &&
     !is.na(password) &&
-    identical(user, "admin") &&
-    identical(password, "admin123")
+    identical(user, credentials$account) &&
+    identical(password, credentials$password)
 }
 
 viewer_admin_http_app <- function(app) {

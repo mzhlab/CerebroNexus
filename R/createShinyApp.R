@@ -1539,6 +1539,10 @@ dedent <- function(string) {
 #'   renames matching sheets: every sheet not named in a mapping is still
 #'   included. Mappings may target only declared Excel files and must
 #'   refer to existing, distinct source sheets with unique final labels.
+#' @param admin_account Built-in Administrator account name. Defaults to
+#'   \code{"admin"}.
+#' @param admin_password Built-in Administrator password. Defaults to
+#'   \code{"admin123"}. Set a deployment-specific value before publishing.
 #' @param ... Currently unused; reserved for future arguments.
 #'
 #' @return Invisibly returns \code{result_dir}. If that path changes resolution
@@ -1610,6 +1614,8 @@ createShinyApp <- function(
   auth = NULL,
   extra_tables = NULL,
   extra_tables_sheets = NULL,
+  admin_account = "admin",
+  admin_password = "admin123",
   ...
 ) {
   # Validate inputs ----------------------------------------------------------##
@@ -1639,6 +1645,18 @@ createShinyApp <- function(
       "cerebro_data must be a named character vector or list of file paths.",
       call. = FALSE
     )
+  }
+  valid_admin_value <- function(value) {
+    is.character(value) &&
+      length(value) == 1L &&
+      !is.na(value) &&
+      nzchar(value)
+  }
+  if (!valid_admin_value(admin_account)) {
+    stop("'admin_account' must be one non-empty string.", call. = FALSE)
+  }
+  if (!valid_admin_value(admin_password)) {
+    stop("'admin_password' must be one non-empty string.", call. = FALSE)
   }
   if (length(cerebro_data) == 0L) {
     stop("cerebro_data must contain at least one data set.", call. = FALSE)
@@ -2424,6 +2442,8 @@ createShinyApp <- function(
   cerebro_options[["cerebro_version"]] <- .cerebroRuntimeVersion()
   cerebro_options[["crb_file_to_load"]] <- crb_files
   cerebro_options[["cerebro_root"]] <- "."
+  cerebro_options[["admin_account"]] <- admin_account
+  cerebro_options[["admin_password"]] <- admin_password
   internal_option_names <- c(
     ".bundle_backend_plan",
     ".bundle_run_options",

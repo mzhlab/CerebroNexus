@@ -36,6 +36,8 @@ createShinyApp(
   auth = NULL,
   extra_tables = NULL,
   extra_tables_sheets = NULL,
+  admin_account = "admin",
+  admin_password = "admin123",
   ...
 )
 }
@@ -182,6 +184,12 @@ keyed by \code{extra_tables} labels. Each inner mapping is
 renames matching sheets: every sheet not named in a mapping is still
 included. Mappings may target only declared Excel files and must
 refer to existing, distinct source sheets with unique final labels.}
+
+\item{admin_account}{Built-in Administrator account name. Defaults to
+\code{"admin"}.}
+
+\item{admin_password}{Built-in Administrator password. Defaults to
+\code{"admin123"}. Set a deployment-specific value before publishing.}
 
 \item{...}{Currently unused; reserved for future arguments.}
 }

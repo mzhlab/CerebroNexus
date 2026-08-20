@@ -89,7 +89,7 @@ observeEvent(
       )
       return(invisible(NULL))
     }
-    if (!viewer_admin_default_login(user, password)) {
+    if (!viewer_admin_default_login(user, password, Cerebro.options)) {
       admin_login_failures <<- admin_login_failures + 1L
       session$sendCustomMessage(
         "viewer_admin_access",
@@ -99,13 +99,13 @@ observeEvent(
     }
     assign(
       "viewer_auth",
-      list(authenticated = TRUE, user = "admin", is_admin = TRUE),
+      list(authenticated = TRUE, user = user, is_admin = TRUE),
       envir = session$userData
     )
     viewer_admin_expose(select = TRUE)
     session$sendCustomMessage(
       "viewer_admin_access",
-      list(allowed = TRUE, user = "admin")
+      list(allowed = TRUE, user = user)
     )
     viewer_admin_inventory()
   },
