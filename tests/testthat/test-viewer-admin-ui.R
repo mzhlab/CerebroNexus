@@ -115,6 +115,12 @@ test_that("Admin UI and assets expose one coherent management page", {
   )
   expect_match(clipboard, "previousFocus.focus()", fixed = TRUE)
   expect_match(script, "window.cerebroClipboard.copyText", fixed = TRUE)
+  expect_match(
+    script,
+    "document.contains(target)) target.focus()",
+    fixed = TRUE
+  )
+  expect_false(grepl("target.disabled = true", script, fixed = TRUE))
   expect_match(server, "invalidateLater(2000, session)", fixed = TRUE)
 })
 

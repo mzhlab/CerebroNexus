@@ -117,11 +117,15 @@
       var target = event.target.closest('[data-action]');
       if (!target) return;
       if (target.dataset.action === 'copy') {
-        target.disabled = true; target.textContent = 'Copying…';
+        if (target.dataset.copying === 'true') return;
+        target.dataset.copying = 'true'; target.textContent = 'Copying…';
         window.cerebroClipboard.copyText(shareUrl(target.dataset.token)).then(function (ok) {
           target.textContent = ok ? 'Copied ✓' : 'Copy failed';
           status(ok ? 'Share link copied.' : 'Clipboard access was blocked.', ok ? 'success' : 'error');
-          window.setTimeout(function () { target.disabled = false; target.textContent = 'Copy link'; }, 1400);
+          if (document.contains(target)) target.focus();
+          window.setTimeout(function () {
+            target.textContent = 'Copy link'; delete target.dataset.copying;
+          }, 1400);
         });
       } else if (target.dataset.action === 'revoke') {
         send('revoke', target.dataset.token);

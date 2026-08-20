@@ -595,12 +595,20 @@ test_that("Save and share markup is accessible and bundled in every Viewer", {
   expect_match(controller, "copy.textContent = ok ? 'Copied ✓'", fixed = TRUE)
   expect_false(grepl("copyText(shareUrl(token));", controller, fixed = TRUE))
   expect_match(controller, "window.cerebroClipboard.copyText", fixed = TRUE)
+  expect_match(
+    controller,
+    "document.contains(copy)) copy.focus()",
+    fixed = TRUE
+  )
+  expect_false(grepl("copy.disabled = true", controller, fixed = TRUE))
   expect_match(controller, "cerebro:share-created", fixed = TRUE)
   expect_false(grepl("Copying…", controller, fixed = TRUE))
   expect_false(grepl("Saving in the background…", controller, fixed = TRUE))
   expect_match(controller, "Preparing view…", fixed = TRUE)
   expect_match(controller, "Creating share link…", fixed = TRUE)
   expect_match(controller, "Share link ready.", fixed = TRUE)
+  expect_match(controller, "result.code === 'prepare_expired'", fixed = TRUE)
+  expect_match(controller, "preparedCache.clear()", fixed = TRUE)
   expect_match(
     server,
     'c("nonce", "action", "prepared_id", "token")',

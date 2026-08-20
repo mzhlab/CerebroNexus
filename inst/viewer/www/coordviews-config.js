@@ -124,13 +124,12 @@
     var copy = snapshotButton('Copy link', function () {
       if (copy.dataset.copying === 'true') return;
       copy.dataset.copying = 'true';
-      copy.disabled = true;
       window.cerebroClipboard.copyText(shareUrl(record.token)).then(function (ok) {
         copy.textContent = ok ? 'Copied ✓' : 'Copy failed';
         status(ok ? 'Share link copied.' : 'Clipboard access was blocked.', ok ? 'success' : 'error');
+        if (document.contains(copy)) copy.focus();
         window.setTimeout(function () {
           copy.textContent = 'Copy link';
-          copy.disabled = false;
           delete copy.dataset.copying;
         }, 1400);
       });
@@ -338,6 +337,9 @@
       if (action === 'share_create') {
         latestShare = null;
         renderShareResult(latestShare);
+        if (result.code === 'prepare_expired' && preparedCache) {
+          preparedCache.clear();
+        }
       }
       status(result.message || 'The share request failed.', 'error'); return;
     }
