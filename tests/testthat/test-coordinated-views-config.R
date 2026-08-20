@@ -360,6 +360,10 @@ test_that("display bounds match the controls users can actually choose", {
 
 test_that("cross-field references must describe one coherent workspace", {
   config <- valid_linked_view_config()
+  config$selection$geometry$space <- "projection::missing"
+  expect_config_error(config, "invalid_reference")
+
+  config <- valid_linked_view_config()
   config$view$active_spatial <- "not-selected"
   expect_config_error(config, "invalid_reference")
 
@@ -536,6 +540,7 @@ test_that("Save and share markup is accessible and bundled in every Viewer", {
   ui_file <- file.path(config_inst, "viewer/coordinated_views/UI.R")
   shell_file <- file.path(config_inst, "viewer/shiny_UI.R")
   controller_file <- file.path(config_inst, "viewer/www/coordviews-config.js")
+  engine_file <- file.path(config_inst, "viewer/www/coordviews.js")
   cache_file <- file.path(
     config_inst,
     "viewer/www/coordviews-config-cache.js"
@@ -545,6 +550,7 @@ test_that("Save and share markup is accessible and bundled in every Viewer", {
   ui <- paste(readLines(ui_file, warn = FALSE), collapse = "\n")
   shell <- paste(readLines(shell_file, warn = FALSE), collapse = "\n")
   controller <- paste(readLines(controller_file, warn = FALSE), collapse = "\n")
+  engine <- paste(readLines(engine_file, warn = FALSE), collapse = "\n")
   css <- paste(readLines(css_file, warn = FALSE), collapse = "\n")
   server <- paste(readLines(server_file, warn = FALSE), collapse = "\n")
 
@@ -638,6 +644,18 @@ test_that("Save and share markup is accessible and bundled in every Viewer", {
   )
   expect_false(grepl("copy.disabled = true", controller, fixed = TRUE))
   expect_match(controller, "cerebro:share-created", fixed = TRUE)
+  expect_match(engine, "function committedSelectionGeometry()", fixed = TRUE)
+  expect_match(engine, "geometry: committedSelectionGeometry()", fixed = TRUE)
+  expect_match(
+    engine,
+    "selectionPanel.lassoData = state.selectionGeometry.polygon.map",
+    fixed = TRUE
+  )
+  expect_false(grepl(
+    "function restoreConfigSelectionOutline",
+    engine,
+    fixed = TRUE
+  ))
   expect_match(
     controller,
     "Share link ready. Saving in the background…",

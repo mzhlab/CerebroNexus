@@ -794,6 +794,12 @@ cv_config_normalize <- function(config, cells) {
     character(1),
     "space"
   )
+  if (!normalized$selection$geometry$space %in% lens_spaces) {
+    cv_config_abort(
+      "invalid_reference",
+      "The selection region is not part of this workspace."
+    )
+  }
   if (
     !is.null(normalized_view$focus_space) &&
       !normalized_view$focus_space %in% lens_spaces

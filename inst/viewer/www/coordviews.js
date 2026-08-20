@@ -1457,54 +1457,21 @@ var focusPanel = null;
     return any;
   }
 
-  // A portable workspace stores cell identities, not source coordinates. Once
-  // those identities are restored into the same data set, reconstruct a local
-  // outline from the available coordinates so the selected region remains
-  // legible without putting any geometry into the JSON document.
-  function restoreConfigSelectionOutline(indexes, source, mode) {
-    if (!indexes || !indexes.size || !source) return;
-    var panel = null;
-    panels.forEach(function (candidate) {
-      if (!panel && !panelIs3D(candidate) &&
-        selectionSourceLabel(candidate) === source) panel = candidate;
+  function committedSelectionGeometry() {
+    var selectedPanel = null;
+    panels.forEach(function (panel) {
+      if (!selectedPanel && panel.lassoData && panel.lassoData.length > 2) {
+        selectedPanel = panel;
+      }
     });
-    if (!panel || !panel.ok) return;
-    var unit = spaceById[panel.spaceId] && spaceById[panel.spaceId]._unit;
-    if (!unit) return;
-    var points = [];
-    indexes.forEach(function (index) {
-      if (panel.ok[index]) points.push([unit.nx[index], unit.ny[index]]);
-    });
-    if (points.length < 2) return;
-    var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    points.forEach(function (point) {
-      minX = Math.min(minX, point[0]); maxX = Math.max(maxX, point[0]);
-      minY = Math.min(minY, point[1]); maxY = Math.max(maxY, point[1]);
-    });
-    var pad = 0.008;
-    if (mode === 'box' || points.length < 3) {
-      panel.lassoData = [
-        [minX - pad, minY - pad], [maxX + pad, minY - pad],
-        [maxX + pad, maxY + pad], [minX - pad, maxY + pad]
-      ];
-      return;
+    if (!selectedPanel) {
+      configFail('The selected region is unavailable. Draw the selection again before sharing.');
     }
-    points.sort(function (a, b) { return a[0] - b[0] || a[1] - b[1]; });
-    var cross = function (origin, left, right) {
-      return (left[0] - origin[0]) * (right[1] - origin[1]) -
-        (left[1] - origin[1]) * (right[0] - origin[0]);
+    return {
+      space: selectedPanel.spaceId,
+      mode: selectMode === 'box' ? 'box' : 'lasso',
+      polygon: selectedPanel.lassoData.map(function (point) { return point.slice(); })
     };
-    var lower = [], upper = [], i;
-    for (i = 0; i < points.length; i++) {
-      while (lower.length > 1 && cross(lower[lower.length - 2], lower[lower.length - 1], points[i]) <= 0) lower.pop();
-      lower.push(points[i]);
-    }
-    for (i = points.length - 1; i >= 0; i--) {
-      while (upper.length > 1 && cross(upper[upper.length - 2], upper[upper.length - 1], points[i]) <= 0) upper.pop();
-      upper.push(points[i]);
-    }
-    lower.pop(); upper.pop();
-    panel.lassoData = lower.concat(upper);
   }
 
   // Centre a slider's value bubble over its thumb. Uses the slider's fixed 150px
@@ -4968,7 +4935,11 @@ var focusPanel = null;
         cell_count: D.cells.length,
         cell_fingerprint: D.dataset_fingerprint
       },
-      selection: { cells: selected, source: selectionSource || null },
+      selection: {
+        cells: selected,
+        source: selectionSource || null,
+        geometry: committedSelectionGeometry()
+      },
       view: {
         colour: {
           mode: colorBy,
@@ -5025,6 +4996,23 @@ var focusPanel = null;
       if (selectedIndexes.has(cellIndex[cell])) configFail('Selected cells must be unique.');
       selectedIndexes.add(cellIndex[cell]);
     });
+    var selectionGeometry = (config.selection || {}).geometry || {};
+    if (!selectionGeometry.space ||
+      (selectionGeometry.mode !== 'lasso' && selectionGeometry.mode !== 'box')) {
+      configFail('The saved selection region is invalid.');
+    }
+    var selectionPolygon = configArray(
+      selectionGeometry.polygon,
+      'selection.geometry.polygon'
+    ).map(function (point) {
+      point = configArray(point, 'selection.geometry point');
+      if (point.length !== 2) configFail('A selection point is invalid.');
+      return [
+        configNumber(point[0], 'selection x coordinate'),
+        configNumber(point[1], 'selection y coordinate')
+      ];
+    });
+    if (selectionPolygon.length < 3) configFail('The saved selection region is invalid.');
 
     var projections = configArray(view.projections, 'view.projections').slice();
     var availableProjections = Object.keys(D.projections || {});
@@ -5212,6 +5200,11 @@ var focusPanel = null;
     return {
       selectedIndexes: selectedIndexes,
       selectionSource: config.selection.source || null,
+      selectionGeometry: {
+        space: selectionGeometry.space,
+        mode: selectionGeometry.mode,
+        polygon: selectionPolygon
+      },
       projections: projections,
       spatialSections: spatialSections,
       activeSpatial: view.active_spatial,
@@ -5341,11 +5334,18 @@ var focusPanel = null;
     positionAllRangeVals(); seedImgControls();
     clearLassos();
     setSelection(state.selectedIndexes, state.selectionSource);
-    restoreConfigSelectionOutline(
-      state.selectedIndexes,
-      state.selectionSource,
-      state.display.selectionMode
-    );
+    var selectionPanel = null;
+    panels.forEach(function (panel) {
+      if (!selectionPanel && panel.spaceId === state.selectionGeometry.space) {
+        selectionPanel = panel;
+      }
+    });
+    if (!selectionPanel || panelIs3D(selectionPanel)) {
+      configFail('The saved selection panel is unavailable here.');
+    }
+    selectionPanel.lassoData = state.selectionGeometry.polygon.map(function (point) {
+      return point.slice();
+    });
     drawAll();
   }
   function applyConfigState(config, colourData) {
