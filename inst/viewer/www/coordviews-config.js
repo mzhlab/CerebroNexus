@@ -521,7 +521,7 @@
     try {
       var summary = adapter().apply(result.config, result.colour_data || null);
       var message = 'Restored ' + summary.selectedCells + ' selected cells and view settings.';
-      if (shared) shareOpenStatus(message, 'success');
+      if (shared) shareOpenStatus('', 'success');
       else status(message, 'success');
       return true;
     } catch (error) {

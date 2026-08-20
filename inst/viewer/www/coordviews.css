@@ -1120,14 +1120,6 @@
   letter-spacing: .045em; text-transform: uppercase; white-space: nowrap;
 }
 .coordviews-page .cv-workspace-guide-text { color: var(--cv-text2); }
-.coordviews-page .cv-workspace-overview {
-  margin-left: auto; padding: 4px 9px; cursor: pointer;
-  display: inline-flex; align-items: center; gap: 6px;
-  border: 1px solid var(--cv-amber200); border-radius: 6px;
-  background: var(--cv-amber50); color: var(--cv-amber700);
-  font-family: inherit; font-size: 11.5px; font-weight: 650;
-}
-.coordviews-page .cv-workspace-overview:hover { background: #fff1e6; }
 @media (prefers-reduced-motion: reduce) {
   .coordviews-page .cv-workspace-guide,
   .coordviews-page .cv-selbar,

@@ -2234,8 +2234,8 @@ test_that("a panel can become the focus without losing linked context", {
   )
 
   ## Focus has an explicit round trip before any cohort exists: the guide names
-  ## the focused lens, cards name their roles, and the global Overview action
-  ## returns to the equal workspace.
+  ## the focused lens, cards name their roles, and the same panel's Exit focus
+  ## action returns to the equal workspace without a duplicate global action.
   app$run_js(
     "document.querySelector('.cv-focus-btn[data-panel=\"A\"]').click();"
   )
@@ -2269,9 +2269,7 @@ test_that("a panel can become the focus without losing linked context", {
     ),
     "Exit focus and return to overview"
   )
-  expect_true(app$get_js(
-    "getComputedStyle(document.getElementById('cv-workspace-overview')).display !== 'none'"
-  ))
+  expect_null(app$get_js("document.getElementById('cv-workspace-overview')"))
   app$wait_for_js(
     "!document.querySelector('.cv-panes').classList.contains('cv-focus-transitioning')",
     timeout = 10000
@@ -2279,7 +2277,9 @@ test_that("a panel can become the focus without losing linked context", {
   expect_true(app$get_js(
     "Array.from(document.querySelectorAll('.cv-pane')).every(function (p) { return p.style.transform === ''; })"
   ))
-  app$run_js("document.getElementById('cv-workspace-overview').click();")
+  app$run_js(
+    "document.querySelector('.cv-focus-btn[data-panel=\"A\"]').click();"
+  )
   app$wait_for_idle(timeout = 10000)
   app$wait_for_js(
     paste0(

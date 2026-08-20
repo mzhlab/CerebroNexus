@@ -180,6 +180,9 @@ test_that("Linked views chooses its grid from both viewport dimensions", {
     ui,
     fixed = TRUE
   ))
+  expect_match(ui, 'id = "cv-readout"', fixed = TRUE)
+  expect_match(ui, 'uiOutput("coordviews_selected_cells_UI")', fixed = TRUE)
+  expect_false(grepl('id = "cv-workspace-overview"', ui, fixed = TRUE))
 })
 
 test_that("Linked views keeps replacement controls contextual and user-facing", {

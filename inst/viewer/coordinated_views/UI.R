@@ -565,14 +565,6 @@ tab_coordinated_views <- tabItem(
           class = "cv-workspace-guide-text",
           id = "cv-workspace-guide-text",
           "Drag in any view to create an active cohort. Use Focus to enlarge one lens while keeping the others linked."
-        ),
-        tags$button(
-          type = "button",
-          class = "cv-workspace-overview",
-          id = "cv-workspace-overview",
-          style = "display:none",
-          icon("table-cells-large"),
-          "Back to overview"
         )
       ),
       ## Active cohort: the shared state all lenses are describing.
@@ -665,6 +657,7 @@ tab_coordinated_views <- tabItem(
     ## panels; it is populated with the composition and clonotype summary.
     div(
       class = "cv-secondary-analysis",
+      style = "margin-top:14px;",
       div(
         class = "cv-readout",
         id = "cv-readout",
@@ -674,6 +667,12 @@ tab_coordinated_views <- tabItem(
           "every panel, and their composition and top clonotypes appear here."
         )
       )
+    ),
+
+    ## ---- selected-cell detail views (server-rendered) ------------------- ##
+    div(
+      style = "margin-top:6px;",
+      uiOutput("coordviews_selected_cells_UI")
     ),
 
     ## ---- Trekker insights ------------------------------------------------- ##
