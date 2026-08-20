@@ -5144,6 +5144,10 @@ var focusPanel = null;
     Object.keys(allowedSpaces).forEach(function (space) {
       if (!lenses[space]) configFail('A linked lens is missing from this configuration.');
     });
+    var selectionSpace = spaceById[selectionGeometry.space];
+    if (!selectionSpace || selectionSpace.z) {
+      configFail('The saved selection panel must be a two-dimensional linked view.');
+    }
 
     if ((!D.clone || !spaceById.clone) && display.clone_layout !== 'stack') {
       configFail('The requested clone layout is unavailable here.');

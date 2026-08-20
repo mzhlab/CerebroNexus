@@ -485,7 +485,12 @@ test_that("configuration failures map to a bounded public vocabulary", {
 
 test_that("the coordinated server exposes validated configuration transport", {
   server_file <- file.path(config_inst, "viewer/coordinated_views/server.R")
+  viewer_server_file <- file.path(config_inst, "viewer/shiny_server.R")
   server <- paste(readLines(server_file, warn = FALSE), collapse = "\n")
+  viewer_server <- paste(
+    readLines(viewer_server_file, warn = FALSE),
+    collapse = "\n"
+  )
 
   expect_match(server, "/viewer/coordinated_views/config.R", fixed = TRUE)
   expect_match(server, "cv_config_cell_fingerprint(b$cells)", fixed = TRUE)
@@ -547,12 +552,17 @@ test_that("Save and share markup is accessible and bundled in every Viewer", {
   )
   css_file <- file.path(config_inst, "viewer/www/coordviews.css")
   server_file <- file.path(config_inst, "viewer/coordinated_views/server.R")
+  viewer_server_file <- file.path(config_inst, "viewer/shiny_server.R")
   ui <- paste(readLines(ui_file, warn = FALSE), collapse = "\n")
   shell <- paste(readLines(shell_file, warn = FALSE), collapse = "\n")
   controller <- paste(readLines(controller_file, warn = FALSE), collapse = "\n")
   engine <- paste(readLines(engine_file, warn = FALSE), collapse = "\n")
   css <- paste(readLines(css_file, warn = FALSE), collapse = "\n")
   server <- paste(readLines(server_file, warn = FALSE), collapse = "\n")
+  viewer_server <- paste(
+    readLines(viewer_server_file, warn = FALSE),
+    collapse = "\n"
+  )
 
   expect_match(ui, 'id = "cv-config-open"', fixed = TRUE)
   expect_match(ui, 'icon("share-alt")', fixed = TRUE)
@@ -633,6 +643,31 @@ test_that("Save and share markup is accessible and bundled in every Viewer", {
   expect_match(open_share, "navigation.click()", fixed = TRUE)
   expect_false(grepl("openDialog()", open_share, fixed = TRUE))
   expect_match(controller, "shareOpenStatus", fixed = TRUE)
+  expect_match(
+    viewer_server,
+    'grepl("(^|[?&])linked_view=", initial_url_search)',
+    fixed = TRUE
+  )
+  expect_match(
+    viewer_server,
+    'initial_navigation$tab_name <- "coordinated_views"',
+    fixed = TRUE
+  )
+  expect_false(grepl(
+    "function toggleZoom() {\n    clearLassos()",
+    engine,
+    fixed = TRUE
+  ))
+  expect_false(grepl(
+    "window.addEventListener('resize', function () {\n      clearLassos()",
+    engine,
+    fixed = TRUE
+  ))
+  expect_match(
+    engine,
+    "The saved selection panel must be a two-dimensional linked view.",
+    fixed = TRUE
+  )
   share_section <- substr(
     ui,
     regexpr('id = "cv-config-share"', ui, fixed = TRUE),

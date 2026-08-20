@@ -202,6 +202,15 @@ test_that("the browser adapter round-trips a brushed cohort transactionally", {
     app$get_js("window.__cvSaved.selection.geometry.polygon"),
     4L
   )
+  app$run_js("window.dispatchEvent(new Event('resize'));")
+  app$wait_for_js("window.cerebroLinkedViewsState.ready()", timeout = 10000)
+  expect_identical(
+    app$get_js(paste0(
+      "JSON.stringify(window.cerebroLinkedViewsState.capture()",
+      ".selection.geometry)"
+    )),
+    saved_geometry
+  )
   expect_identical(
     app$get_js("window.__cvSaved.dataset.cell_fingerprint"),
     "md5-cell-set-v1:0123456789abcdef0123456789abcdef"
@@ -245,6 +254,22 @@ test_that("the browser adapter round-trips a brushed cohort transactionally", {
   expect_identical(
     app$get_js("JSON.stringify(window.cerebroLinkedViewsState.summary())"),
     app$get_js("window.__cvBefore")
+  )
+
+  app$run_js(paste0(
+    "window.__cvBadGeometry=JSON.parse(JSON.stringify(window.__cvSaved));",
+    "window.__cvBadGeometry.selection.geometry.space='projection::pca';",
+    "window.__cvBadGeometry.view.projections.push('pca');",
+    "window.__cvBadGeometry.view.lenses.push({space:'projection::pca',",
+    "viewport:{cx:.5,cy:.5,span:1},rotation:{rx:0,ry:0}});",
+    "window.__cvBeforeGeometry=JSON.stringify(window.cerebroLinkedViewsState.summary());",
+    "try{window.cerebroLinkedViewsState.apply(window.__cvBadGeometry);}",
+    "catch(error){window.__cvGeometryError=error.message;}"
+  ))
+  expect_match(app$get_js("window.__cvGeometryError"), "two-dimensional")
+  expect_identical(
+    app$get_js("JSON.stringify(window.cerebroLinkedViewsState.summary())"),
+    app$get_js("window.__cvBeforeGeometry")
   )
 
   app$run_js(paste0(

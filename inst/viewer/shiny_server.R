@@ -73,6 +73,16 @@ server <- function(input, output, session) {
   initial_navigation$conditional <- configured_initial_page %in%
     page_catalog$conditional$id &&
     !identical(initial_navigation$tab_name, "coordinated_views")
+  initial_url_search <- isolate(session$clientData$url_search)
+  if (
+    is.character(initial_url_search) &&
+      length(initial_url_search) == 1L &&
+      !is.na(initial_url_search) &&
+      grepl("(^|[?&])linked_view=", initial_url_search)
+  ) {
+    initial_navigation$tab_name <- "coordinated_views"
+    initial_navigation$conditional <- FALSE
+  }
   initial_navigation$applied <- FALSE
   .crb_cache <- .crb_process_cache
   source(
