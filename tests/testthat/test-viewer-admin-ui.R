@@ -106,12 +106,14 @@ test_that("Admin UI and assets expose one coherent management page", {
   )
   expect_match(
     clipboard,
-    "root.setTimeout(function () { finish(false); }, 500)",
+    "root.setTimeout(function () { finish(false); }, 1000)",
     fixed = TRUE
   )
-  expect_lt(
-    regexpr("if (fallbackCopy(text))", clipboard, fixed = TRUE),
-    regexpr("clipboard.writeText(text)", clipboard, fixed = TRUE)
+  expect_false(grepl("if (fallbackCopy(text))", clipboard, fixed = TRUE))
+  expect_match(
+    clipboard,
+    "resolve(!!copied || fallbackCopy(text))",
+    fixed = TRUE
   )
   expect_match(clipboard, "previousFocus.focus()", fixed = TRUE)
   expect_match(script, "window.cerebroClipboard.copyText", fixed = TRUE)

@@ -32,10 +32,9 @@
   }
 
   function copyText(text) {
-    if (fallbackCopy(text)) return Promise.resolve(true);
     var clipboard = root.navigator && root.navigator.clipboard;
     if (!clipboard || typeof clipboard.writeText !== 'function') {
-      return Promise.resolve(false);
+      return Promise.resolve(fallbackCopy(text));
     }
     return new Promise(function (resolve) {
       var settled = false;
@@ -43,9 +42,9 @@
         if (settled) return;
         settled = true;
         root.clearTimeout(timer);
-        resolve(!!copied);
+        resolve(!!copied || fallbackCopy(text));
       }
-      var timer = root.setTimeout(function () { finish(false); }, 500);
+      var timer = root.setTimeout(function () { finish(false); }, 1000);
       try {
         Promise.resolve(clipboard.writeText(text)).then(
           function () { finish(true); },

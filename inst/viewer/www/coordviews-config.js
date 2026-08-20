@@ -124,8 +124,7 @@
     var copy = snapshotButton('Copy link', function () {
       if (copy.dataset.copying === 'true') return;
       copy.dataset.copying = 'true';
-      copy.textContent = 'Copied ✓';
-      status('Share link copied.', 'success');
+      copy.textContent = 'Copying…';
       window.cerebroClipboard.copyText(shareUrl(record.token)).then(function (ok) {
         copy.textContent = ok ? 'Copied ✓' : 'Copy failed';
         status(ok ? 'Share link copied.' : 'Clipboard access was blocked.', ok ? 'success' : 'error');
