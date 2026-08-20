@@ -5346,6 +5346,7 @@ var focusPanel = null;
     if (D && sel) sel.forEach(function (index) { cells.push(D.cells[index]); });
     return {
       ready: !!(D && D.dataset_fingerprint),
+      datasetFingerprint: D && D.dataset_fingerprint ? D.dataset_fingerprint : null,
       selectedCells: cells.length,
       selectedCellBarcodes: cells,
       colourMode: colorBy,

@@ -796,6 +796,8 @@ test_that("Save and share markup is accessible and bundled in every Viewer", {
   expect_no_match(controller, "window.prompt", fixed = TRUE)
   expect_match(css, "cv-config-status.is-working", fixed = TRUE)
   expect_match(controller, "cerebro:linkedviews-selection", fixed = TRUE)
+  expect_match(engine, "datasetFingerprint", fixed = TRUE)
+  expect_match(controller, "summary.datasetFingerprint", fixed = TRUE)
   expect_match(controller, "function connectShiny", fixed = TRUE)
   expect_match(controller, "shiny:connected", fixed = TRUE)
   expect_match(css, "background: var(--cv-amber", fixed = TRUE)

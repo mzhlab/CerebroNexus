@@ -80,8 +80,19 @@ test_that("the browser adapter round-trips a brushed cohort transactionally", {
     app$get_js("document.getElementById('cv-config-open').title"),
     "Save, open, import, export, or share"
   )
+  app$run_js(paste0(
+    "localStorage.setItem('cerebro.linked-views.snapshots.v1',JSON.stringify({",
+    "version:1,records:[{id:'saved-no-selection',name:'Saved before clear',",
+    "saved_at:'2026-08-21T00:00:00Z',app_version:'5.0.0',json:JSON.stringify({",
+    "dataset:{cell_fingerprint:'md5-cell-set-v1:0123456789abcdef0123456789abcdef'},",
+    "selection:{cells:[]},view:{colour:{mode:'cell_type'}}})}]}));"
+  ))
   app$run_js("document.getElementById('cv-config-open').click();")
   app$wait_for_js("document.getElementById('cv-config-dialog').open")
+  expect_match(
+    app$get_js("document.getElementById('cv-snapshot-list').textContent"),
+    "Saved before clear"
+  )
   expect_true(app$get_js(
     "document.getElementById('cv-config-download').disabled"
   ))

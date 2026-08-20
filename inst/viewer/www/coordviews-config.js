@@ -80,9 +80,9 @@
   function currentFingerprint() {
     try {
       var state = adapter();
-      var config = state && state.ready() ? state.capture() : null;
-      return config && config.dataset && typeof config.dataset.cell_fingerprint === 'string'
-        ? config.dataset.cell_fingerprint : null;
+      var summary = state && state.ready() && state.summary ? state.summary() : null;
+      return summary && typeof summary.datasetFingerprint === 'string'
+        ? summary.datasetFingerprint : null;
     } catch (ignore) { return null; }
   }
   function appVersion() {
