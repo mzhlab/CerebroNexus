@@ -68,10 +68,10 @@ if (!viewer_is_admin(session)) {
 保留：
 
 ```r
-creator = viewer_auth_context(session)$user
+creator = viewer_auth_context(session)$user %||% ""
 ```
 
-因此匿名用户记录 `NULL`，登录用户记录用户名；配置校验、数据集指纹、SQLite 写入、token 和过期策略不变。
+因此匿名用户记录空字符串，登录用户记录用户名；配置校验、数据集指纹、SQLite 写入、token 和过期策略不变。
 
 - [ ] **步骤 5：记录但不执行绿灯命令**
 

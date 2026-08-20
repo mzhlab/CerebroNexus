@@ -538,7 +538,6 @@ test_that("Save and share markup is accessible and bundled in every Viewer", {
   expect_match(ui, 'id = "cv-snapshot-name-dialog"', fixed = TRUE)
   expect_match(ui, 'id = "cv-snapshot-name-input"', fixed = TRUE)
   expect_match(ui, 'id = "cv-config-share"', fixed = TRUE)
-  expect_match(ui, 'hidden = "hidden"', fixed = TRUE)
   expect_match(ui, 'id = "cv-share-create"', fixed = TRUE)
   expect_match(ui, 'id = "cv-share-list"', fixed = TRUE)
   expect_match(
@@ -583,12 +582,14 @@ test_that("Save and share markup is accessible and bundled in every Viewer", {
   expect_match(controller, "share_open", fixed = TRUE)
   expect_false(grepl("share_revoke", controller, fixed = TRUE))
   expect_match(controller, "linked_view", fixed = TRUE)
-  expect_match(
-    controller,
-    "shareRegion.hidden = !shareAdminAllowed",
-    fixed = TRUE
+  share_section <- substr(
+    ui,
+    regexpr('id = "cv-config-share"', ui, fixed = TRUE),
+    regexpr('id = "cv-config-status"', ui, fixed = TRUE)
   )
-  expect_match(controller, "viewer_admin_capability", fixed = TRUE)
+  expect_false(grepl('hidden = "hidden"', share_section, fixed = TRUE))
+  expect_false(grepl("shareAdminAllowed", controller, fixed = TRUE))
+  expect_false(grepl("viewer_admin_capability", controller, fixed = TRUE))
   expect_match(controller, "pendingShare.retried", fixed = TRUE)
   expect_match(controller, "crypto.getRandomValues", fixed = TRUE)
   expect_match(controller, "copy.textContent = ok ? 'Copied ✓'", fixed = TRUE)
@@ -597,6 +598,7 @@ test_that("Save and share markup is accessible and bundled in every Viewer", {
   expect_match(controller, "cerebro:share-created", fixed = TRUE)
   expect_false(grepl("Copying…", controller, fixed = TRUE))
   expect_false(grepl("Saving in the background…", controller, fixed = TRUE))
+  expect_match(controller, "Preparing view…", fixed = TRUE)
   expect_match(controller, "Creating share link…", fixed = TRUE)
   expect_match(controller, "Share link ready.", fixed = TRUE)
   expect_match(
@@ -604,10 +606,9 @@ test_that("Save and share markup is accessible and bundled in every Viewer", {
     'c("nonce", "action", "config_json", "token")',
     fixed = TRUE
   )
-  expect_match(server, "if (!viewer_is_admin(session))", fixed = TRUE)
   expect_match(
     server,
-    "creator = viewer_auth_context(session)$user",
+    'creator = viewer_auth_context(session)$user %||% ""',
     fixed = TRUE
   )
   expect_match(
@@ -620,10 +621,12 @@ test_that("Save and share markup is accessible and bundled in every Viewer", {
     regexpr('if (identical(action, "share_create"))', server, fixed = TRUE),
     regexpr('} else if (identical(action, "share_open"))', server, fixed = TRUE)
   )
-  expect_lt(
-    regexpr("viewer_is_admin(session)", create_branch, fixed = TRUE),
-    regexpr("cv_config_decode", create_branch, fixed = TRUE)
-  )
+  expect_false(grepl("viewer_is_admin(session)", create_branch, fixed = TRUE))
+  expect_false(grepl(
+    "Administrator access is required",
+    create_branch,
+    fixed = TRUE
+  ))
   expect_false(grepl(
     "cv_config_prepare(request$config",
     create_branch,

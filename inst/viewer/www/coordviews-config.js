@@ -14,7 +14,6 @@
   var pendingShareTimer = null;
   var sharePreparing = false;
   var shareUrlHandled = false;
-  var shareAdminAllowed = false;
   var latestShare = null;
   var preparedCache = null;
   var shinyBound = false;
@@ -143,10 +142,10 @@
     var create = byId('cv-share-create');
     var shareRegion = byId('cv-config-share');
     if (shareRegion) {
-      shareRegion.hidden = !shareAdminAllowed;
+      shareRegion.hidden = false;
       shareRegion.classList.toggle('is-disabled', exportBusy || !exportReady);
     }
-    if (create) create.disabled = !shareAdminAllowed || exportBusy ||
+    if (create) create.disabled = exportBusy ||
       sharePreparing || !!pendingShare || !exportReady;
     if (!list) return;
     list.replaceChildren();
@@ -298,9 +297,6 @@
       sendShareRequest(action, record, null);
       return;
     }
-    if (!shareAdminAllowed) {
-      status('Administrator access is required to create share links.', 'error'); return;
-    }
     if (!state || !state.ready() || !exportReady) {
       status('Select at least one cell before creating a share link.', 'error'); return;
     }
@@ -314,7 +310,7 @@
     }
     sharePreparing = true;
     renderShareResult(latestShare);
-    status('Creating share link…', 'working');
+    status('Preparing view…', 'working');
     preparedCache.get().then(function (prepared) {
       sharePreparing = false;
       renderShareResult(latestShare);
@@ -357,10 +353,6 @@
       var url = new URL(window.location.href); url.searchParams.delete('linked_view');
       window.history.replaceState({}, '', url.toString());
     }
-  }
-  function receiveShareCapability(result) {
-    shareAdminAllowed = !!(result && result.allowed === true);
-    renderShareResult(latestShare);
   }
   function openShareFromUrl() {
     if (shareUrlHandled) return;
@@ -652,7 +644,6 @@
     shinyBound = true;
     Shiny.addCustomMessageHandler('coordviews_config_result', receive);
     Shiny.addCustomMessageHandler('coordviews_share_result', receiveShare);
-    Shiny.addCustomMessageHandler('viewer_admin_capability', receiveShareCapability);
     setupPreparedCache();
     invalidatePrepared();
     openShareFromUrl();
