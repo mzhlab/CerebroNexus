@@ -2,6 +2,10 @@
   stop(message, call. = FALSE)
 }
 
+.viewer_auth_is_admin <- function(value) {
+  isTRUE(value) || identical(value, "TRUE")
+}
+
 .viewer_auth_validate_config <- function(config) {
   expected <- c(
     "credentials_path",
@@ -276,6 +280,15 @@ viewer_auth_apply <- function(ui, server, config, cerebro_root = ".") {
         started(TRUE)
         subject(user)
         last_activity(now_ms())
+        assign(
+          "viewer_auth",
+          list(
+            authenticated = TRUE,
+            user = user,
+            is_admin = .viewer_auth_is_admin(auth$admin)
+          ),
+          envir = session$userData
+        )
         server(input, output, session)
       } else if (
         started() &&

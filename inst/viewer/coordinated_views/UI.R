@@ -117,12 +117,9 @@ cv_pane <- function(key) {
         tags$span(class = "cv-focus-label", "Focus")
       )
     ),
-    ## The canvas gets a positioned wrapper so the minimap can sit at the
-    ## CANVAS's bottom-left rather than the pane's. It matters because the square
-    ## is not always flush with the pane: in the three-space layout the UMAP pane
-    ## is stretched over two rows and its canvas centres itself in the extra
-    ## height. Anchoring in CSS also means the minimap follows the canvas's
-    ## width/height transition for free, instead of being re-measured per frame.
+    ## The canvas gets a positioned wrapper which is also the full visible
+    ## plotting surface. In the three-space layout the UMAP pane is stretched
+    ## over two rows, so its intentional breathing room remains interactive.
     div(
       class = "cv-canvas-wrap",
       tags$canvas(id = paste0("cv-cv-", low)),
@@ -350,10 +347,20 @@ tab_coordinated_views <- tabItem(
         ## a rotation makes visible as a wobble)
         tags$span(class = "cv-caret")
       ),
-      ## Right-aligned global filter/subsample readout. Cohort actions belong to
-      ## the Active cohort bar below, not to this settings row.
+      ## Right-aligned global workspace controls and filter/subsample readout.
       div(
         class = "cv-topbar-right",
+        tags$button(
+          type = "button",
+          id = "cv-config-open",
+          class = "cv-config-open",
+          disabled = "disabled",
+          `aria-haspopup` = "dialog",
+          `aria-controls` = "cv-config-dialog",
+          title = "Save, open, import, export, or share a linked view",
+          icon("share-alt"),
+          tags$span("Share views")
+        ),
         ## Live "showing N / M cells" readout — hidden unless a filter/subsample
         ## reduces the view, so filtering is visible even when the panels are
         ## coloured by a different variable than the one being filtered.
@@ -561,7 +568,6 @@ tab_coordinated_views <- tabItem(
           "Back to overview"
         )
       ),
-
       ## Active cohort: the shared state all lenses are describing.
       div(
         class = "cv-selbar cv-collapse",
@@ -802,6 +808,166 @@ tab_coordinated_views <- tabItem(
       shiny::uiOutput("coordviews_selected_cells_UI")
     ),
 
+    ## A portable Linked views configuration contains the cohort's cell
+    ## barcodes and this workspace's controls, but never the source data, image
+    ## pixels, expression values, file paths, or Builder project identity.
+    tags$dialog(
+      id = "cv-config-dialog",
+      class = "cv-config-dialog",
+      `aria-labelledby` = "cv-config-title",
+      `aria-describedby` = "cv-config-privacy",
+      tags$button(
+        type = "button",
+        id = "cv-config-close",
+        class = "cv-config-close",
+        `aria-label` = "Close workspace JSON",
+        HTML("&times;")
+      ),
+      tags$div(class = "cv-config-kicker", "Portable linked workspace"),
+      tags$h4(id = "cv-config-title", "Manage this linked workspace"),
+      tags$p(
+        id = "cv-config-privacy",
+        class = "cv-config-privacy",
+        "The JSON includes selected cell barcodes and view settings. It does ",
+        "not include expression data, coordinates, image pixels, or local paths."
+      ),
+      tags$section(
+        class = "cv-config-region cv-config-transfer",
+        `aria-labelledby` = "cv-config-transfer-title",
+        tags$div(
+          class = "cv-config-region-head",
+          tags$h5(id = "cv-config-transfer-title", "Import or export a view"),
+          tags$p("Download a JSON file, copy it, or open one from disk.")
+        ),
+        div(
+          class = "cv-config-actions",
+          tags$button(
+            type = "button",
+            id = "cv-config-download",
+            class = "cv-config-action cv-config-action-primary",
+            icon("download"),
+            tags$span("Download JSON")
+          ),
+          tags$button(
+            type = "button",
+            id = "cv-config-copy",
+            class = "cv-config-action",
+            icon("copy"),
+            tags$span("Copy JSON")
+          ),
+          div(
+            class = "cv-config-upload",
+            fileInput(
+              "coordviews_config_upload",
+              label = NULL,
+              accept = c("application/json", ".json"),
+              buttonLabel = tagList(
+                icon("folder-open"),
+                tags$span("Open JSON")
+              ),
+              placeholder = "No file selected"
+            )
+          )
+        )
+      ),
+      tags$section(
+        class = "cv-config-region cv-config-save-local",
+        `aria-labelledby` = "cv-config-save-local-title",
+        tags$div(
+          class = "cv-config-region-head",
+          tags$h5(id = "cv-config-save-local-title", "Saved on this device"),
+          tags$p("Private to this browser and this cell population.")
+        ),
+        tags$button(
+          type = "button",
+          id = "cv-snapshot-save",
+          class = "cv-snapshot-save",
+          icon("bookmark"),
+          "Save current view"
+        ),
+        tags$div(
+          class = "cv-snapshot-library",
+          tags$h6("Saved views"),
+          tags$div(
+            id = "cv-snapshot-list",
+            class = "cv-snapshot-list",
+            `aria-live` = "polite"
+          )
+        )
+      ),
+      tags$section(
+        id = "cv-config-share",
+        class = "cv-config-region cv-config-share",
+        hidden = "hidden",
+        `aria-labelledby` = "cv-config-share-title",
+        tags$div(
+          class = "cv-config-region-head",
+          tags$h5(id = "cv-config-share-title", "Share with a link"),
+          tags$p(
+            "Create a read-only snapshot link for this view. ",
+            "Manage all active links from Admin; links expire after 90 days."
+          )
+        ),
+        tags$button(
+          type = "button",
+          id = "cv-share-create",
+          class = "cv-share-create",
+          icon("link"),
+          "Create share link"
+        ),
+        tags$div(
+          id = "cv-share-list",
+          class = "cv-share-list",
+          `aria-live` = "polite"
+        )
+      ),
+      tags$p(
+        id = "cv-config-status",
+        class = "cv-config-status",
+        role = "status",
+        `aria-live` = "polite"
+      )
+    ),
+    tags$dialog(
+      id = "cv-snapshot-name-dialog",
+      class = "cv-snapshot-name-dialog",
+      `aria-labelledby` = "cv-snapshot-name-title",
+      `aria-describedby` = "cv-snapshot-name-help",
+      tags$button(
+        type = "button",
+        id = "cv-snapshot-name-close",
+        class = "cv-snapshot-name-close",
+        `aria-label` = "Close",
+        HTML("&times;")
+      ),
+      tags$div(class = "cv-config-kicker", "Saved view"),
+      tags$h4(id = "cv-snapshot-name-title", "Save current view"),
+      tags$p(
+        id = "cv-snapshot-name-help",
+        "Give this view a short name so you can find it later."
+      ),
+      tags$input(
+        id = "cv-snapshot-name-input",
+        type = "text",
+        maxlength = "80",
+        autocomplete = "off"
+      ),
+      tags$div(
+        class = "cv-snapshot-name-actions",
+        tags$button(
+          type = "button",
+          id = "cv-snapshot-name-cancel",
+          class = "cv-snapshot-name-cancel",
+          "Cancel"
+        ),
+        tags$button(
+          type = "button",
+          id = "cv-snapshot-name-confirm",
+          class = "cv-snapshot-name-confirm",
+          "Save view"
+        )
+      )
+    ),
     tags$dialog(
       id = "cv-moran-modal",
       class = "cv-insight-modal",

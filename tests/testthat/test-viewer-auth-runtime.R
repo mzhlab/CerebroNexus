@@ -1,12 +1,11 @@
 viewer_auth_runtime_environment <- function() {
   runtime <- new.env(parent = globalenv())
-  source_file <- file.path("inst", "viewer", "auth.R")
-  if (!file.exists(source_file)) {
-    source_file <- system.file(
-      "viewer/auth.R",
-      package = "CerebroNexus"
-    )
-  }
+  candidates <- c(
+    file.path("inst", "viewer", "auth.R"),
+    testthat::test_path("../../inst/viewer/auth.R"),
+    system.file("viewer/auth.R", package = "CerebroNexus")
+  )
+  source_file <- candidates[file.exists(candidates)][[1L]]
   sys.source(source_file, envir = runtime)
   runtime
 }
@@ -146,7 +145,7 @@ test_that("Viewer starts after server-authoritative authentication", {
     passphrase = passphrase
   )
   withr::local_envvar(CEREBRO_AUTH_TEST_KEY = passphrase)
-  auth_state <- shiny::reactiveValues(user = NULL)
+  auth_state <- shiny::reactiveValues(user = NULL, admin = NULL)
   captured_checker <- NULL
   testthat::local_mocked_bindings(
     secure_app = function(ui, ...) structure(ui, viewer_auth_secured = TRUE),
@@ -157,9 +156,11 @@ test_that("Viewer starts after server-authoritative authentication", {
     .package = "shinymanager"
   )
   starts <- 0L
+  observed_auth <- NULL
   reloaded <- FALSE
   viewer_server <- function(input, output, session) {
     starts <<- starts + 1L
+    observed_auth <<- session$userData$viewer_auth
   }
 
   app <- runtime$viewer_auth_apply(
@@ -176,9 +177,14 @@ test_that("Viewer starts after server-authoritative authentication", {
     expect_true(captured_checker("alice", "alice-login-password")$result)
     expect_false(captured_checker("alice", "wrong-password")$result)
     expect_identical(starts, 0L)
+    auth_state$admin <- "TRUE"
     auth_state$user <- "alice"
     session$flushReact()
     expect_identical(starts, 1L)
+    expect_identical(
+      observed_auth,
+      list(authenticated = TRUE, user = "alice", is_admin = TRUE)
+    )
     session$reload <- function() {
       reloaded <<- TRUE
     }
@@ -189,6 +195,52 @@ test_that("Viewer starts after server-authoritative authentication", {
     session$flushReact()
     expect_true(reloaded)
     expect_true(session$isClosed())
+  })
+})
+
+test_that("ordinary Viewer authentication cannot claim Administrator access", {
+  skip_if_not_installed("shinymanager", minimum_version = "1.1.0")
+  runtime <- viewer_auth_runtime_environment()
+  root <- withr::local_tempdir()
+  database <- file.path(root, "private-data", "auth", "credentials.sqlite")
+  dir.create(dirname(database), recursive = TRUE)
+  viewer_auth_runtime_brand_assets(root)
+  passphrase <- "runtime test passphrase"
+  shinymanager::create_db(
+    credentials_data = data.frame(
+      user = "bob",
+      password = "bob-login-password",
+      admin = FALSE,
+      stringsAsFactors = FALSE
+    ),
+    sqlite_path = database,
+    passphrase = passphrase
+  )
+  withr::local_envvar(CEREBRO_AUTH_TEST_KEY = passphrase)
+  auth_state <- shiny::reactiveValues(user = NULL, admin = NULL)
+  testthat::local_mocked_bindings(
+    secure_app = function(ui, ...) ui,
+    secure_server = function(...) auth_state,
+    .package = "shinymanager"
+  )
+  observed_auth <- NULL
+  app <- runtime$viewer_auth_apply(
+    shiny::fluidPage("viewer"),
+    function(input, output, session) {
+      observed_auth <<- session$userData$viewer_auth
+    },
+    viewer_auth_runtime_config(),
+    root
+  )
+
+  shiny::testServer(app$server, {
+    auth_state$admin <- "FALSE"
+    auth_state$user <- "bob"
+    session$flushReact()
+    expect_identical(
+      observed_auth,
+      list(authenticated = TRUE, user = "bob", is_admin = FALSE)
+    )
   })
 })
 

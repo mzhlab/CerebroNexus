@@ -756,8 +756,9 @@ var focusPanel = null;
   // the grab cursor rather than the crosshair that promises a selection.
   function syncCursors() {
     panels.forEach(function (p) {
-      if (!p.canvas) return;
-      p.canvas.classList.toggle('cv-pannable',
+      var surface = p.surface || p.canvas;
+      if (!surface) return;
+      surface.classList.toggle('cv-pannable',
         panelIs3D(p) || selectMode === 'pan' || selectMode === 'orbit');
     });
   }
@@ -1456,6 +1457,56 @@ var focusPanel = null;
     return any;
   }
 
+  // A portable workspace stores cell identities, not source coordinates. Once
+  // those identities are restored into the same data set, reconstruct a local
+  // outline from the available coordinates so the selected region remains
+  // legible without putting any geometry into the JSON document.
+  function restoreConfigSelectionOutline(indexes, source, mode) {
+    if (!indexes || !indexes.size || !source) return;
+    var panel = null;
+    panels.forEach(function (candidate) {
+      if (!panel && !panelIs3D(candidate) &&
+        selectionSourceLabel(candidate) === source) panel = candidate;
+    });
+    if (!panel || !panel.ok) return;
+    var unit = spaceById[panel.spaceId] && spaceById[panel.spaceId]._unit;
+    if (!unit) return;
+    var points = [];
+    indexes.forEach(function (index) {
+      if (panel.ok[index]) points.push([unit.nx[index], unit.ny[index]]);
+    });
+    if (points.length < 2) return;
+    var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    points.forEach(function (point) {
+      minX = Math.min(minX, point[0]); maxX = Math.max(maxX, point[0]);
+      minY = Math.min(minY, point[1]); maxY = Math.max(maxY, point[1]);
+    });
+    var pad = 0.008;
+    if (mode === 'box' || points.length < 3) {
+      panel.lassoData = [
+        [minX - pad, minY - pad], [maxX + pad, minY - pad],
+        [maxX + pad, maxY + pad], [minX - pad, maxY + pad]
+      ];
+      return;
+    }
+    points.sort(function (a, b) { return a[0] - b[0] || a[1] - b[1]; });
+    var cross = function (origin, left, right) {
+      return (left[0] - origin[0]) * (right[1] - origin[1]) -
+        (left[1] - origin[1]) * (right[0] - origin[0]);
+    };
+    var lower = [], upper = [], i;
+    for (i = 0; i < points.length; i++) {
+      while (lower.length > 1 && cross(lower[lower.length - 2], lower[lower.length - 1], points[i]) <= 0) lower.pop();
+      lower.push(points[i]);
+    }
+    for (i = points.length - 1; i >= 0; i--) {
+      while (upper.length > 1 && cross(upper[upper.length - 2], upper[upper.length - 1], points[i]) <= 0) upper.pop();
+      upper.push(points[i]);
+    }
+    lower.pop(); upper.pop();
+    panel.lassoData = lower.concat(upper);
+  }
+
   // Centre a slider's value bubble over its thumb. Uses the slider's fixed 150px
   // width as a fallback so it positions correctly even while its panel is hidden
   // (offsetWidth 0), and re-runs on every input.
@@ -1529,6 +1580,7 @@ var focusPanel = null;
     updateSelActions();
     updateZselButtons();
     renderSelbar(); renderReadout(); reportSelection(); drawAll();
+    reportConfigSelection();
   }
   // Subtle reveal/collapse for the selection bar + the Zoom/Clear group, so they
   // fade/slide in and out instead of popping. Elements start with `cv-collapse`
@@ -2669,7 +2721,10 @@ var focusPanel = null;
     if (ty < m) ty = p.sy[i] + 14;                   // flip below
     tx = Math.max(m, Math.min(tx, p.W - tw - m));
     ty = Math.max(m, Math.min(ty, p.H - th - m));
-    tip.style.left = tx + 'px'; tip.style.top = ty + 'px';
+    // Tips live in the wrapper while `sx`/`sy` belong to the square canvas.
+    // Carry its centred offset across when a bento pane leaves breathing room.
+    tip.style.left = (tx + p.canvas.offsetLeft) + 'px';
+    tip.style.top = (ty + p.canvas.offsetTop) + 'px';
   }
 
   // Pin a panel's tooltip to a cell: it stops following the cursor, gains the
@@ -2743,7 +2798,12 @@ var focusPanel = null;
 
   function wireHover(p) {
     var tip = $(p.tipId);
-    p.canvas.addEventListener('mousemove', function (e) {
+    // The square canvas is deliberately centred in a stretched focus card. The
+    // wrapper is still visibly part of that plot, so it must share the canvas'
+    // hover and brush hit area. Positions remain relative to the canvas: values
+    // in the surrounding margin simply sit outside its coordinate square.
+    var surface = p.surface || p.canvas;
+    surface.addEventListener('mousemove', function (e) {
       var r = p.canvas.getBoundingClientRect();
       var mx = e.clientX - r.left, my = e.clientY - r.top;
       // A pinned tooltip owns this panel's tooltip element until it is closed —
@@ -2765,7 +2825,7 @@ var focusPanel = null;
       tip.innerHTML = hoverHtml(i, false); tip.style.opacity = 1;
       placeTip(p, tip, i);
     });
-    p.canvas.addEventListener('mouseleave', function () {
+    surface.addEventListener('mouseleave', function () {
       setHoverCell(null);
       if (pinnedTip.panel === p) return;
       tip.style.opacity = 0;
@@ -2774,11 +2834,12 @@ var focusPanel = null;
 
   // ---- brush + pick --------------------------------------------------------
   function wireBrush(p) {
+    var surface = p.surface || p.canvas;
     var pos = function (e) {
       var r = p.canvas.getBoundingClientRect();
       return [e.clientX - r.left, e.clientY - r.top];
     };
-    p.canvas.addEventListener('mousedown', function (e) {
+    surface.addEventListener('mousedown', function (e) {
       if (isSpatialSpace(spaceById[p.spaceId])) activateSpatial(p.spaceId);
       // A rotatable panel NAVIGATES; it does not select. Selection here is done
       // on screen coordinates, and once the cloud has depth those stop being a
@@ -2796,7 +2857,7 @@ var focusPanel = null;
         e.preventDefault();
         p.orbiting = true; p.orbitFrom = pos(e);
         p.orbitBase = p.rot ? { rx: p.rot.rx, ry: p.rot.ry } : { rx: 0, ry: 0 };
-        p.canvas.classList.add('cv-grabbing');
+        surface.classList.add('cv-grabbing');
         return;
       }
       // Pan: the toolbar's hand mode, or middle-drag / shift-drag from any mode
@@ -2810,7 +2871,7 @@ var focusPanel = null;
         p.panView = p.view
           ? { cx: p.view.cx, cy: p.view.cy, span: p.view.span }
           : { cx: 0.5, cy: 0.5, span: 1 };
-        p.canvas.classList.add('cv-grabbing');
+        surface.classList.add('cv-grabbing');
         return;
       }
       // a fresh brush supersedes any committed lasso (this panel's is replaced,
@@ -2820,7 +2881,7 @@ var focusPanel = null;
       });
       p.drag = true; p.moved = false; p.start = pos(e); p.lasso = [p.start]; p.lassoData = null;
     });
-    p.canvas.addEventListener('mousemove', function (e) {
+    surface.addEventListener('mousemove', function (e) {
       if (p.orbiting) {
         var oq = pos(e), RAD = 0.009;   // radians per pixel dragged
         p.rot = {
@@ -2870,14 +2931,14 @@ var focusPanel = null;
     window.addEventListener('mouseup', function (e) {
       if (p.orbiting) {
         p.orbiting = false;
-        p.canvas.classList.remove('cv-grabbing');
+        surface.classList.remove('cv-grabbing');
         p.miniBg = null;    // the thumbnail is of the old angle
         drawAll();
         return;
       }
       if (p.panning) {
         p.panning = false;
-        p.canvas.classList.remove('cv-grabbing');
+        surface.classList.remove('cv-grabbing');
         drawAll();
         return;
       }
@@ -2967,7 +3028,8 @@ var focusPanel = null;
       var mini = $('cv-mini-' + low);
       var p = { key: key, canvas: cv, ctx: cv.getContext('2d'), tipId: 'cv-tip-' + low,
         // the canvas sits in .cv-canvas-wrap now, so the pane is two levels up
-        pane: cv.closest('.cv-pane'), spaceId: null, W: 0, H: 0,
+        pane: cv.closest('.cv-pane'), surface: cv.closest('.cv-canvas-wrap') || cv,
+        spaceId: null, W: 0, H: 0,
         sx: null, sy: null, ok: null, lasso: null, lassoData: null, drag: false, moved: false,
         view: null, mini: mini, mctx: null, miniBg: null, miniUnit: null };
       // The minimap is a FIXED size, so its backing store is set once here
@@ -3030,8 +3092,10 @@ var focusPanel = null;
       });
       resizeObserver._cvChromeObserved = true;
     }
-    // The pane container gains its final width only after a hidden workspace is
-    // restored. Observe it directly so the grid recomputes at that width.
+    // The explicit pixel tracks make an individual pane retain its old width
+    // while an ancestor widens. Observe the full grid as well: this catches a
+    // restored workspace becoming visible at its final tab width, then lets
+    // resizeAll recompute the tracks from that current width.
     if (!resizeObserver._cvPanesObserved) {
       var panesHost = document.querySelector('.coordviews-page .cv-panes');
       if (panesHost) resizeObserver.observe(panesHost);
@@ -4596,6 +4660,7 @@ var focusPanel = null;
     setTrekkerInsightsOpen(false);
     setMoreOpen(false);
     reportSelection();
+    reportConfigReadiness();
   }
 
   function applyColorPatch(patch) {
@@ -4779,7 +4844,553 @@ var focusPanel = null;
     if (pendingColorPatch && applyColorPatch(pendingColorPatch)) {
       pendingColorPatch = null;
     }
+    reportConfigReadiness();
   }
+
+  // ---- portable workspace state ------------------------------------------
+  // The public adapter is deliberately narrow. It never exposes the bundle,
+  // coordinates, expression vectors or image pixels; it translates the private
+  // engine state to the allowlisted JSON contract validated by R.
+  function configFail(message) { throw new Error(message); }
+  function configArray(value, label) {
+    if (!Array.isArray(value)) configFail(label + ' must be an array.');
+    return value;
+  }
+  function configNumber(value, label) {
+    value = Number(value);
+    if (!isFinite(value)) configFail(label + ' must be a finite number.');
+    return value;
+  }
+  function configInputValue(id) {
+    var el = $(id);
+    if (!el) return null;
+    if (el.selectize) return el.selectize.getValue() || null;
+    return el.value || null;
+  }
+  function configSetInputValue(id, value, fire) {
+    var el = $(id);
+    if (el && el.selectize) {
+      if (value) el.selectize.addOption({ value: value, label: value });
+      el.selectize.setValue(value || '', !fire);
+      return;
+    }
+    if (el) el.value = value || '';
+    if (fire && typeof Shiny !== 'undefined' && Shiny.setInputValue) {
+      Shiny.setInputValue(id, value || '', { priority: 'event' });
+    }
+  }
+  function configSpaceForFocus() {
+    var found = null;
+    panels.forEach(function (p) {
+      if (focusPanel && p.key === focusPanel) found = p.spaceId || null;
+    });
+    return found;
+  }
+  function configCloneMode() {
+    return (typeof CLONE_MODE === 'string' && CLONE_MODE === 'bands')
+      ? 'bands' : 'stack';
+  }
+  function configFilters() {
+    var out = Object.create(null);
+    Object.keys(groupFilter).sort().forEach(function (name) {
+      var group = D.groups && D.groups[name];
+      if (!group || !groupFilter[name]) return;
+      out[name] = Array.from(groupFilter[name]).sort(function (a, b) { return a - b; })
+        .map(function (index) { return group.levels[index]; });
+    });
+    return out;
+  }
+  function configHiddenLevels() {
+    var group = catOf(colorBy);
+    if (!group || !hidden.size) return [];
+    return [{
+      group: colorBy,
+      levels: Array.from(hidden).sort(function (a, b) { return a - b; })
+        .map(function (index) { return group.levels[index]; })
+    }];
+  }
+  function configLenses() {
+    return panels.filter(function (p) { return !!p.spaceId; }).map(function (p) {
+      var view = p.view || { cx: 0.5, cy: 0.5, span: 1 };
+      return {
+        space: p.spaceId,
+        viewport: { cx: view.cx, cy: view.cy, span: view.span },
+        rotation: p.rot ? { rx: p.rot.rx, ry: p.rot.ry } : null
+      };
+    });
+  }
+  function configSpatialBackgrounds() {
+    return selectedSpatial.map(function (name) {
+      var sp = spaceById[spatialId(name)];
+      var images = spatialImages(sp);
+      if (!sp || !images.length) return null;
+      var mode = backgroundModeFor(sp);
+      var selectedImage = mode === 'custom' ? sp._customImageId : null;
+      var image = currentImage(sp) || images.filter(function (item) {
+        return item.id === selectedImage;
+      })[0] || images[0];
+      var state = sp._imgState || presetState(image);
+      return {
+        section: name,
+        mode: mode === 'custom' ? 'image' : mode,
+        image_id: mode === 'custom' ? selectedImage : null,
+        opacity: state.opacity,
+        alignment: {
+          offset_x: state.offsetX,
+          offset_y: state.offsetY,
+          scale_x: state.scaleX,
+          scale_y: state.scaleY,
+          rotation: state.rotate || 0,
+          lock_aspect: !!state.lock,
+          flip_x: !!state.flipX,
+          flip_y: !!state.flipY,
+          show: state.show !== false
+        }
+      };
+    }).filter(Boolean);
+  }
+  function captureConfigState() {
+    if (!D || !D.dataset_fingerprint || !Array.isArray(D.cells)) {
+      configFail('Linked views is not ready to save.');
+    }
+    var selectedIndexes = sel ? Array.from(sel) : [];
+    selectedIndexes.sort(function (left, right) { return left - right; });
+    var selected = selectedIndexes.map(function (index) { return D.cells[index]; });
+    var rgb = D.rgb && Array.isArray(D.rgb.genes)
+      ? D.rgb.genes.slice(0, 3)
+      : ['coordviews_gene_r', 'coordviews_gene_g', 'coordviews_gene_b']
+        .map(configInputValue).filter(Boolean);
+    return {
+      schema: 'cerebronexus-linked-view',
+      version: 1,
+      created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+      dataset: {
+        cell_count: D.cells.length,
+        cell_fingerprint: D.dataset_fingerprint
+      },
+      selection: { cells: selected, source: selectionSource || null },
+      view: {
+        colour: {
+          mode: colorBy,
+          gene: colorBy === GENE_MODE
+            ? (configInputValue('coordviews_gene') || (D.gene && D.gene.gene) || null)
+            : null,
+          rgb_genes: colorBy === RGB_MODE ? rgb : [],
+          clip: colorClip || 0
+        },
+        projections: selectedProjections.slice(),
+        spatial_sections: selectedSpatial.slice(),
+        active_spatial: activeSpatial() ? activeSpatial()._sampleName || null : null,
+        filters: configFilters(),
+        hidden_levels: configHiddenLevels(),
+        display: {
+          percentage_cells: pctShow,
+          point_size: ps,
+          point_opacity: pointOpacity,
+          group_labels: !!labelsOn,
+          selection_mode: selectMode === 'box' ? 'box' : 'lasso',
+          clone_layout: configCloneMode()
+        },
+        focus_space: configSpaceForFocus(),
+        lenses: configLenses(),
+        spatial_backgrounds: configSpatialBackgrounds(),
+        trekker: {
+          dissolve_percentage: dissolvePct,
+          evidence: !!evidenceOn,
+          niche_radius: nicheRadius
+        }
+      }
+    };
+  }
+
+  function prepareConfigState(config, colourData) {
+    if (!D || !D.dataset_fingerprint || !Array.isArray(D.cells)) {
+      configFail('Linked views is not ready to restore.');
+    }
+    if (!config || config.schema !== 'cerebronexus-linked-view' || config.version !== 1) {
+      configFail('This is not a supported Linked views configuration.');
+    }
+    if (!config.dataset || config.dataset.cell_count !== D.cells.length ||
+      config.dataset.cell_fingerprint !== D.dataset_fingerprint) {
+      configFail('This configuration belongs to a different cell population.');
+    }
+    var view = config.view || {}, display = view.display || {};
+    var cellIndex = Object.create(null);
+    D.cells.forEach(function (cell, index) { cellIndex[cell] = index; });
+    var selectedIndexes = new Set();
+    configArray((config.selection || {}).cells, 'selection.cells').forEach(function (cell) {
+      if (!Object.prototype.hasOwnProperty.call(cellIndex, cell)) {
+        configFail('A selected cell is unavailable in this data set.');
+      }
+      if (selectedIndexes.has(cellIndex[cell])) configFail('Selected cells must be unique.');
+      selectedIndexes.add(cellIndex[cell]);
+    });
+
+    var projections = configArray(view.projections, 'view.projections').slice();
+    var availableProjections = Object.keys(D.projections || {});
+    projections.forEach(function (name) {
+      if (availableProjections.indexOf(name) < 0) configFail('A projection is unavailable here.');
+    });
+    var spatialSections = configArray(view.spatial_sections, 'view.spatial_sections').slice();
+    var samples = spatialSamples();
+    var availableSections = samples.map(function (sample) { return sample.name; });
+    spatialSections.forEach(function (name) {
+      if (availableSections.indexOf(name) < 0) configFail('A Spatial section is unavailable here.');
+    });
+    if (view.active_spatial != null && spatialSections.indexOf(view.active_spatial) < 0) {
+      configFail('The active Spatial section is unavailable here.');
+    }
+
+    var mode = (view.colour || {}).mode;
+    if (mode !== GENE_MODE && mode !== RGB_MODE &&
+      !(mode && mode.indexOf(FIELD_PREFIX) === 0 && D.fields && D.fields[mode.slice(FIELD_PREFIX.length)]) &&
+      !catOf(mode)) {
+      configFail('The colour source is unavailable here.');
+    }
+    if (mode === GENE_MODE && !(view.colour && view.colour.gene)) {
+      configFail('Gene colour mode is missing its gene.');
+    }
+    var rgbGenes = configArray((view.colour || {}).rgb_genes, 'view.colour.rgb_genes');
+    if (mode === RGB_MODE && rgbGenes.length !== 3) {
+      configFail('RGB colour mode requires exactly three genes.');
+    }
+    var preparedColour = null;
+    if (colourData != null) {
+      if (!colourData || colourData.mode !== mode) {
+        configFail('The colour data does not match this configuration.');
+      }
+      if (mode === GENE_MODE) {
+        var geneValues = configArray(colourData.v, 'gene values');
+        if (colourData.gene !== view.colour.gene || geneValues.length !== D.n) {
+          configFail('The requested gene is unavailable here.');
+        }
+        geneValues.forEach(function (value) { configNumber(value, 'gene value'); });
+        preparedColour = {
+          mode: mode,
+          gene: colourData.gene,
+          v: geneValues.slice(),
+          max: configNumber(colourData.max, 'gene maximum')
+        };
+      } else if (mode === RGB_MODE) {
+        var resourceGenes = configArray(colourData.genes, 'RGB genes');
+        if (resourceGenes.join('\u0000') !== rgbGenes.join('\u0000')) {
+          configFail('The requested RGB genes are unavailable here.');
+        }
+        var channels = ['r', 'g', 'b'].map(function (channel) {
+          var values = configArray(colourData[channel], 'RGB values');
+          if (values.length !== D.n) configFail('An RGB gene is unavailable here.');
+          values.forEach(function (value) { configNumber(value, 'RGB value'); });
+          return values.slice();
+        });
+        preparedColour = {
+          mode: mode,
+          genes: resourceGenes.slice(),
+          r: channels[0], g: channels[1], b: channels[2]
+        };
+      } else {
+        configFail('Unexpected colour data was supplied.');
+      }
+    }
+
+    var filters = Object.create(null);
+    Object.keys(view.filters || {}).forEach(function (name) {
+      var group = D.groups && D.groups[name];
+      if (!group) configFail('A group filter is unavailable here.');
+      var indexes = new Set();
+      configArray(view.filters[name], 'view.filters.' + name).forEach(function (level) {
+        var index = group.levels.indexOf(level);
+        if (index < 0) configFail('A group-filter level is unavailable here.');
+        indexes.add(index);
+      });
+      if (indexes.size < group.levels.length) filters[name] = indexes;
+    });
+    var hiddenIndexes = new Set();
+    configArray(view.hidden_levels, 'view.hidden_levels').forEach(function (record) {
+      if (!record || record.group !== mode || !catOf(record.group)) {
+        configFail('A hidden legend level is unavailable here.');
+      }
+      var group = catOf(record.group);
+      configArray(record.levels, 'hidden levels').forEach(function (level) {
+        var index = group.levels.indexOf(level);
+        if (index < 0) configFail('A hidden legend level is unavailable here.');
+        hiddenIndexes.add(index);
+      });
+    });
+
+    var allowedSpaces = Object.create(null);
+    projections.forEach(function (name) { allowedSpaces[projectionId(name)] = true; });
+    spatialSections.forEach(function (name) { allowedSpaces[spatialId(name)] = true; });
+    panels.forEach(function (panel) {
+      var id = panel.spaceId;
+      if (typeof id === 'string' &&
+        id.indexOf('projection::') !== 0 && id.indexOf('spatial::') !== 0) {
+        allowedSpaces[id] = true;
+      }
+    });
+    var lenses = Object.create(null);
+    configArray(view.lenses, 'view.lenses').forEach(function (lens) {
+      if (!lens || !allowedSpaces[lens.space] || lenses[lens.space]) {
+        configFail('A linked lens is unavailable here.');
+      }
+      var viewport = lens.viewport || {};
+      lenses[lens.space] = {
+        viewport: {
+          cx: configNumber(viewport.cx, 'lens viewport'),
+          cy: configNumber(viewport.cy, 'lens viewport'),
+          span: configNumber(viewport.span, 'lens viewport')
+        },
+        rotation: lens.rotation ? {
+          rx: configNumber(lens.rotation.rx, 'lens rotation'),
+          ry: configNumber(lens.rotation.ry, 'lens rotation')
+        } : null
+      };
+    });
+    if (view.focus_space != null && !lenses[view.focus_space]) {
+      configFail('The focused lens is unavailable here.');
+    }
+    Object.keys(allowedSpaces).forEach(function (space) {
+      if (!lenses[space]) configFail('A linked lens is missing from this configuration.');
+    });
+
+    if ((!D.clone || !spaceById.clone) && display.clone_layout !== 'stack') {
+      configFail('The requested clone layout is unavailable here.');
+    }
+    var trekker = view.trekker || {};
+    if (!D.trekker && (
+      Number(trekker.dissolve_percentage) !== 0 ||
+      trekker.evidence === true ||
+      Number(trekker.niche_radius) !== 250
+    )) configFail('The requested Trekker state is unavailable here.');
+
+    var backgroundSections = Object.create(null);
+    var backgrounds = configArray(view.spatial_backgrounds, 'spatial backgrounds')
+      .map(function (background) {
+        if (!background || spatialSections.indexOf(background.section) < 0) {
+          configFail('A Spatial background is unavailable here.');
+        }
+        var sample = samples.filter(function (item) {
+          return item.name === background.section;
+        })[0];
+        var images = (sample.images || (sample.image ? [sample.image] : []));
+        if (!images.length || backgroundSections[background.section]) {
+          configFail('A Spatial background is unavailable here.');
+        }
+        backgroundSections[background.section] = true;
+        if (background.mode === 'image' && !images.some(function (image) {
+          return image.id === background.image_id;
+        })) configFail('A Spatial background image is unavailable here.');
+        if (['auto', 'none', 'image'].indexOf(background.mode) < 0) {
+          configFail('A Spatial background mode is unavailable here.');
+        }
+        var alignment = background.alignment || {};
+        return {
+          section: background.section,
+          mode: background.mode,
+          imageId: background.image_id,
+          state: {
+            opacity: configNumber(background.opacity, 'image opacity'),
+            offsetX: configNumber(alignment.offset_x, 'image alignment'),
+            offsetY: configNumber(alignment.offset_y, 'image alignment'),
+            scaleX: configNumber(alignment.scale_x, 'image alignment'),
+            scaleY: configNumber(alignment.scale_y, 'image alignment'),
+            rotate: configNumber(alignment.rotation, 'image alignment'),
+            lock: !!alignment.lock_aspect,
+            flipX: !!alignment.flip_x,
+            flipY: !!alignment.flip_y,
+            show: alignment.show !== false
+          }
+        };
+      });
+    spatialSections.forEach(function (section) {
+      var sample = samples.filter(function (item) { return item.name === section; })[0];
+      var images = sample && (sample.images || (sample.image ? [sample.image] : []));
+      if (images && images.length && !backgroundSections[section]) {
+        configFail('A Spatial background is missing from this configuration.');
+      }
+    });
+
+    return {
+      selectedIndexes: selectedIndexes,
+      selectionSource: config.selection.source || null,
+      projections: projections,
+      spatialSections: spatialSections,
+      activeSpatial: view.active_spatial,
+      mode: mode,
+      gene: view.colour.gene,
+      rgbGenes: rgbGenes.slice(),
+      clip: configNumber(view.colour.clip, 'colour clipping'),
+      colourData: preparedColour,
+      filters: filters,
+      hidden: hiddenIndexes,
+      display: {
+        pct: configNumber(display.percentage_cells, 'cell percentage'),
+        size: configNumber(display.point_size, 'point size'),
+        opacity: configNumber(display.point_opacity, 'point opacity'),
+        labels: !!display.group_labels,
+        selectionMode: display.selection_mode,
+        cloneLayout: display.clone_layout
+      },
+      focusSpace: view.focus_space,
+      lenses: lenses,
+      backgrounds: backgrounds,
+      trekker: {
+        dissolve: configNumber(trekker.dissolve_percentage, 'dissolve'),
+        evidence: !!trekker.evidence,
+        niche: configNumber(trekker.niche_radius, 'niche radius')
+      }
+    };
+  }
+
+  function setConfigFocus(spaceId) {
+    var desired = null;
+    panels.forEach(function (panel) { if (panel.spaceId === spaceId) desired = panel.key; });
+    if (focusPanel && focusPanel !== desired) setFocusPanel(focusPanel);
+    if (desired && focusPanel !== desired) setFocusPanel(desired);
+  }
+  function commitConfigState(state) {
+    setSelectedProjections(state.projections);
+    setSelectedSpatial(state.spatialSections);
+    if (state.activeSpatial) activateSpatial(spatialId(state.activeSpatial));
+
+    if (state.mode === GENE_MODE && state.colourData) {
+      D.gene = {
+        gene: state.colourData.gene,
+        v: state.colourData.v,
+        max: state.colourData.max
+      };
+      geneWanted = state.gene;
+      configSetInputValue('coordviews_gene', state.gene, false);
+      setColorBy(GENE_MODE);
+    } else if (state.mode === GENE_MODE) colourByGene(state.gene);
+    else {
+      setColorBy(state.mode);
+      var colourPicker = $('cv-pick-color');
+      if (colourPicker) colourPicker.value = state.mode;
+      if (state.mode === RGB_MODE) {
+        if (state.colourData) {
+          D.rgb = {
+            r: state.colourData.r,
+            g: state.colourData.g,
+            b: state.colourData.b,
+            genes: state.colourData.genes
+          };
+        }
+        ['coordviews_gene_r', 'coordviews_gene_g', 'coordviews_gene_b']
+          .forEach(function (id, index) {
+            configSetInputValue(id, state.rgbGenes[index], !state.colourData);
+          });
+      }
+    }
+    colorClip = state.clip;
+    var clip = $('cv-clip'); if (clip) clip.value = String(colorClip);
+    hidden = state.hidden;
+    groupFilter = state.filters;
+    renderGroupFilters();
+
+    pctShow = state.display.pct; rebuildPctMask();
+    ps = state.display.size; psSeeded = true; pointSizeEdited = true;
+    pointOpacity = state.display.opacity; pointOpacityEdited = true;
+    labelsOn = state.display.labels;
+    selectMode = state.display.selectionMode; syncModeButtons();
+    var setRange = function (id, value, label, digits) {
+      var input = $(id); if (input) input.value = String(value);
+      var output = $(label); if (output) output.textContent = Number(value).toFixed(digits);
+    };
+    setRange('cv-pct', pctShow, 'cv-pct-val', 0);
+    setRange('cv-ps', ps, 'cv-ps-val', 1);
+    setRange('cv-opacity', pointOpacity, 'cv-op-val', 2);
+    var labels = $('cv-labels'); if (labels) labels.checked = labelsOn;
+    if (spaceById.clone && D.clone) {
+      setSegOn(state.display.cloneLayout);
+      applyCloneLayout(state.display.cloneLayout);
+    }
+
+    dissolvePct = state.trekker.dissolve; rebuildDissolve();
+    evidenceOn = state.trekker.evidence;
+    nicheRadius = state.trekker.niche;
+    setRange('cv-dissolve', dissolvePct, 'cv-dissolve-val', 0);
+    setRange('cv-niche', nicheRadius, 'cv-niche-val', 0);
+    var evidence = $('cv-evidence'); if (evidence) evidence.checked = evidenceOn;
+
+    state.backgrounds.forEach(function (background) {
+      var sp = spaceById[spatialId(background.section)];
+      var key = backgroundStateKey(sp);
+      backgroundModes[key] = background.mode === 'image' ? 'custom' : background.mode;
+      sp._customImageId = background.mode === 'image' ? background.imageId : IMG_NONE;
+      loadSpaceImage(sp);
+      sp._imgState = background.state;
+      var imageKey = imgKey(sp, currentImage(sp));
+      if (imageKey) imgStates[imageKey] = background.state;
+    });
+    activateSpatial(state.activeSpatial ? spatialId(state.activeSpatial) : null);
+
+    panels.forEach(function (panel) {
+      var lens = state.lenses[panel.spaceId];
+      if (!lens) return;
+      var viewport = lens.viewport;
+      panel.view = (Math.abs(viewport.cx - 0.5) < 1e-12 &&
+        Math.abs(viewport.cy - 0.5) < 1e-12 && Math.abs(viewport.span - 1) < 1e-12)
+        ? null : clampView(panel, {
+          cx: viewport.cx, cy: viewport.cy, span: viewport.span
+        });
+      panel.rot = lens.rotation ? { rx: lens.rotation.rx, ry: lens.rotation.ry } : null;
+      project(panel);
+    });
+    setConfigFocus(state.focusSpace);
+    updateClipControl(); clipRange(); renderLegend(); updateSpaceScopedControls();
+    positionAllRangeVals(); seedImgControls();
+    clearLassos();
+    setSelection(state.selectedIndexes, state.selectionSource);
+    restoreConfigSelectionOutline(
+      state.selectedIndexes,
+      state.selectionSource,
+      state.display.selectionMode
+    );
+    drawAll();
+  }
+  function applyConfigState(config, colourData) {
+    var prepared = prepareConfigState(config, colourData);
+    commitConfigState(prepared);
+    return configStateSummary();
+  }
+  function configStateSummary() {
+    var cells = [];
+    if (D && sel) sel.forEach(function (index) { cells.push(D.cells[index]); });
+    return {
+      ready: !!(D && D.dataset_fingerprint),
+      selectedCells: cells.length,
+      selectedCellBarcodes: cells,
+      colourMode: colorBy,
+      projections: selectedProjections.slice(),
+      spatialSections: selectedSpatial.slice(),
+      activeSpatial: activeSpatial() ? activeSpatial()._sampleName || null : null,
+      focusSpace: configSpaceForFocus()
+    };
+  }
+  function reportConfigReadiness() {
+    try {
+      window.dispatchEvent(new CustomEvent('cerebro:linkedviews-ready', {
+        detail: {
+          ready: !!(D && D.dataset_fingerprint),
+          selectedCells: sel && sel.size ? sel.size : 0
+        }
+      }));
+    } catch (ignore) { /* CustomEvent is unavailable only in obsolete browsers. */ }
+  }
+  function reportConfigSelection() {
+    try {
+      window.dispatchEvent(new CustomEvent('cerebro:linkedviews-selection', {
+        detail: { selectedCells: sel && sel.size ? sel.size : 0 }
+      }));
+    } catch (ignore) { /* CustomEvent is unavailable only in obsolete browsers. */ }
+  }
+
+  window.cerebroLinkedViewsState = Object.freeze({
+    ready: function () { return !!(D && D.dataset_fingerprint); },
+    capture: captureConfigState,
+    apply: applyConfigState,
+    summary: configStateSummary
+  });
 
   // ---- boot ----------------------------------------------------------------
   // All controls are client-owned (cv- ids), so no shiny:inputchanged is needed.

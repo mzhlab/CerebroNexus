@@ -203,11 +203,17 @@ body.skin-blue .sidebar .cerebro-brand {
   color: var(--c-text) !important;
   padding: 18px 20px 12px;
   margin-bottom: 2px;
+  position: relative;
 }
 body.skin-blue .sidebar .cerebro-brand .cerebro-logo {
   display: block;
   width: 188px;
   height: auto;
+}
+body.skin-blue .sidebar .cerebro-brand-version {
+  position: absolute; right: 14px; top: 12px;
+  color: var(--c-text-muted, #8a8a8a); font-size: 9px; line-height: 1;
+  font-weight: 650; letter-spacing: .03em;
 }
 .cerebro-nav-close,
 #cerebro-nav-scrim { display: none; }

@@ -257,8 +257,21 @@
   font-size: 15px; color: var(--cv-amber700); font-weight: 700;
   white-space: nowrap;
 }
-/* Zoom + Clear live inside the active-cohort bar, beside the selection they
-   affect. They stay horizontal and move to a new flex line only when needed. */
+.coordviews-page .cv-config-open {
+  height: 32px; display: inline-flex; align-items: center; gap: 7px;
+  padding: 0 13px; border: 1px solid var(--c-amber-300, #ffb27a);
+  border-radius: 6px; background: var(--cv-amber50, #fff4ec);
+  color: var(--cv-amber700, #c85a0e); font: 750 12px/1 inherit;
+  white-space: nowrap; cursor: pointer;
+}
+.coordviews-page .cv-config-open:hover:not(:disabled) {
+  background: var(--cv-amber100, #ffe4d1); border-color: var(--cv-amber, #f97316);
+}
+.coordviews-page .cv-config-open:disabled {
+  opacity: .48; cursor: not-allowed;
+}
+/* Save, Zoom and Clear live inside the active-cohort bar, beside the selection
+   they affect. They stay horizontal and move to a new flex line only when needed. */
 .coordviews-page .cv-selactions {
   display: flex; flex-direction: row; flex-wrap: wrap; gap: 6px;
   align-self: center; margin-left: auto;
@@ -268,27 +281,26 @@
 .coordviews-page .cv-selactions.cv-collapse {
   opacity: 0; transform: translateY(-4px); pointer-events: none;
 }
-/* Zoom + Clear share identical compact metrics and differ only by colour, so
-   they read as equal-weight actions on the cohort rather than more settings. */
+/* Cohort actions use one quiet, borderless surface. Colour communicates the
+   action class; geometry stays deliberately identical. */
 .coordviews-page .cv-selactions button {
   min-width: 126px; height: 30px; box-sizing: border-box;
   display: inline-flex; align-items: center; justify-content: center;
   white-space: nowrap; font-family: inherit; cursor: pointer;
   padding: 0 9px; font-size: 12.5px; font-weight: 700; line-height: 1;
-  border: 1px solid; border-radius: 6px;
+  border: 0; border-radius: 6px;
 }
-/* These two are deliberately OUTSIDE the amber vocabulary. Everything else in
-   the bar is a persistent control whose amber means "this is on"; these appear
-   only once a selection exists and act ON it. Sharing amber with the always-on
-   controls is exactly what made them stop standing out.
-   Blue and red rather than green and red: green/red is the pairing that
+.coordviews-page .cv-selactions .cv-config-open {
+  min-width: 0; border-color: var(--cv-border, #d8dce3);
+  background: var(--cv-surface, #fff); color: var(--cv-text2, #575a60);
+}
+.coordviews-page .cv-selactions .cv-config-open:hover:not(:disabled) {
+  background: var(--cv-surface2, #f5f6f8); border-color: var(--cv-text3, #868990);
+}
+/* Blue and red rather than green and red: green/red is the pairing that
    collapses for the ~8% of men with red-green colour blindness, and blue also
    ties Zoom to the blue already used for selection geometry — the lasso outline
    and the minimap's viewport frame. */
-/* Only background and text are set: the shared rule above declares `border: 1px
-   solid` with no colour, so the border follows `color`. That is what lets one
-   set of box metrics produce two clearly different buttons, and it gives each an
-   outline strong enough to hold its own against the panels behind it. */
 .coordviews-page .cv-zoombtn {
   background: var(--cv-blue50); color: var(--c-blue-700, #1d4ea0);
 }
@@ -297,10 +309,10 @@
    than needing the label to be read. The border is set explicitly here — the
    text has gone white, and an inherited white border would ring the button. */
 .coordviews-page .cv-zoombtn.is-zoomed {
-  border-color: var(--cv-blue); background: var(--cv-blue); color: #fff;
+  background: var(--cv-blue); color: #fff;
 }
 .coordviews-page .cv-zoombtn.is-zoomed:hover {
-  background: var(--c-blue-600, #2560bd); border-color: var(--c-blue-600, #2560bd);
+  background: var(--c-blue-600, #2560bd);
 }
 /* Clear — red, for the one action here that takes something away. */
 .coordviews-page .cv-clearbtn {
@@ -664,7 +676,7 @@
 }
 .coordviews-page .cv-focus-btn {
   width: auto; min-width: 72px; height: 26px; padding: 0 9px; gap: 5px;
-  flex: none; font-size: 11.5px; font-weight: 650;
+  margin-left: auto; flex: none; font-size: 11.5px; font-weight: 650;
 }
 .coordviews-page .cv-focus-btn .svg-inline--fa { font-size: 10px; }
 .coordviews-page .cv-focus-btn::after { top: calc(100% + 6px); }
@@ -681,14 +693,18 @@
   border-radius: 6px; background: var(--cv-surface2); color: var(--cv-text2);
   font-size: 11.5px; font-family: inherit;
 }
-/* The wrapper takes over the vertical centring the canvas used to do itself, so
-   it hugs the square exactly and gives the minimap something to anchor to. */
-.coordviews-page .cv-canvas-wrap { position: relative; margin: auto 0; }
+/* A three-space focus pane can be taller than its square canvas. The wrapper
+   fills that visible plot area and owns the pointer, so a brush can begin in
+   the breathing room as naturally as it can over a point. */
+.coordviews-page .cv-canvas-wrap {
+  position: relative; display: flex; flex: 1 0 auto;
+  align-items: center; justify-content: center;
+  width: 100%; min-height: 0; cursor: crosshair;
+}
 .coordviews-page canvas {
-  /* JS sizes each canvas to a square (>=300px); the wrapper's margin auto centres
-     it vertically in its cell — which matters for the UMAP square in the
-     three-space layout. width/height transition in step with the grid tracks so a
-     height-driven re-fit glides rather than snaps. */
+  /* JS keeps the data canvas square (>=300px); its full-size wrapper centres it
+     within a stretched focus pane while retaining that surrounding space as an
+     interactive part of the plot. */
   display: block; background: var(--cv-surface);
   border-radius: 6px; cursor: crosshair;
   transition: width .2s ease, height .2s ease;
@@ -716,8 +732,8 @@
 }
 /* Pan mode: the cursor is the only cue that a drag will move the view rather
    than select cells, so it has to change with the mode and while dragging. */
-.coordviews-page canvas.cv-pannable { cursor: grab; }
-.coordviews-page canvas.cv-grabbing { cursor: grabbing; }
+.coordviews-page .cv-canvas-wrap.cv-pannable { cursor: grab; }
+.coordviews-page .cv-canvas-wrap.cv-grabbing { cursor: grabbing; }
 .coordviews-page .cv-tip {
   position: absolute; pointer-events: none; opacity: 0; transition: opacity .1s;
   background: rgba(28,28,30,.82); color: #fff; padding: 8px 10px;
@@ -1097,6 +1113,11 @@
   font-family: inherit; font-size: 11.5px; font-weight: 650;
 }
 .coordviews-page .cv-workspace-overview:hover { background: #fff1e6; }
+@media (prefers-reduced-motion: reduce) {
+  .coordviews-page .cv-workspace-guide,
+  .coordviews-page .cv-selbar,
+  .coordviews-page .cv-selactions { transition: none; }
+}
 
 /* ---- readout (composition + clonotypes) --------------------------------- */
 .coordviews-page .cv-readout {
@@ -1307,6 +1328,262 @@
   border: 1px solid var(--c-border); border-radius: var(--r-lg);
   color: var(--c-text); background: var(--c-surface);
   box-shadow: var(--shadow-4);
+}
+
+/* ---- portable Linked views configuration ------------------------------- */
+.cv-config-dialog {
+  position: relative; width: min(620px, calc(100vw - 32px));
+  padding: 24px; border: 1px solid var(--cv-border, #e5e7eb);
+  border-radius: 14px; color: var(--cv-text, #252527);
+  background: var(--cv-surface, #fff);
+  box-shadow: var(--shadow-4, 0 18px 52px rgba(0, 0, 0, .22));
+}
+.cv-config-dialog::backdrop { background: rgba(20, 27, 38, .48); }
+.cv-snapshot-name-dialog {
+  width: min(430px, calc(100vw - 32px)); padding: 24px;
+  border: 1px solid var(--cv-border, #e5e7eb); border-radius: 14px;
+  background: var(--cv-surface, #fff); color: var(--cv-text, #252527);
+  box-shadow: var(--shadow-4, 0 18px 52px rgba(0,0,0,.22)); z-index: 2000;
+}
+.cv-snapshot-name-dialog::backdrop { background: rgba(20, 27, 38, .58); }
+.cv-snapshot-name-dialog h4 { margin: 5px 34px 6px 0; font-size: 19px; }
+.cv-snapshot-name-dialog p { margin: 0 0 14px; color: var(--cv-text2, #666); font-size: 12.5px; line-height: 1.45; }
+.cv-snapshot-name-close { position:absolute; top:10px; right:12px; width:30px; height:30px; border:0; border-radius:7px; background:transparent; color:var(--cv-text3,#777); font-size:22px; cursor:pointer; }
+.cv-snapshot-name-close:hover { background: var(--cv-surface2, #f5f5f5); }
+.cv-snapshot-name-dialog input { width:100%; box-sizing:border-box; min-height:40px; padding:8px 10px; border:1px solid var(--cv-border,#d8dce3); border-radius:8px; color:var(--cv-text,#252527); font:inherit; }
+.cv-snapshot-name-dialog input:focus { outline:3px solid rgba(249,115,22,.25); border-color:var(--cv-amber,#f97316); }
+.cv-snapshot-name-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
+.cv-snapshot-name-actions button { min-height:34px; padding:0 12px; border-radius:7px; font:700 12px/1 inherit; cursor:pointer; }
+.cv-snapshot-name-cancel { border:1px solid var(--cv-border,#d8dce3); background:#fff; color:var(--cv-text2,#575a60); }
+.cv-snapshot-name-confirm { border:1px solid var(--cv-amber200,#fed7aa); background:var(--cv-amber50,#fff4ec); color:var(--cv-text,#1c1c1e); }
+.cv-snapshot-name-confirm:hover { background:var(--cv-amber100,#ffe4d1); }
+.cv-config-close {
+  position: absolute; top: 10px; right: 12px; width: 30px; height: 30px;
+  border: 0; border-radius: 7px; background: transparent;
+  color: var(--cv-text3, #777); font-size: 22px; line-height: 1; cursor: pointer;
+}
+.cv-config-close:hover { background: var(--cv-surface2, #f5f5f5); }
+.cv-config-kicker {
+  color: var(--cv-amber700, #c85a0e); font-size: 10.5px; font-weight: 750;
+  letter-spacing: .08em; text-transform: uppercase;
+}
+.cv-config-dialog h4 { margin: 5px 38px 8px 0; font-size: 19px; }
+.cv-config-privacy {
+  margin: 0; color: var(--cv-text2, #666); font-size: 13px; line-height: 1.55;
+}
+.cv-config-region {
+  margin-top: 16px; padding: 16px;
+  border: 1px solid var(--cv-border, #e5e7eb); border-radius: 10px;
+  background: var(--cv-surface, #fff);
+}
+.cv-config-region-head { margin-bottom: 12px; }
+.cv-config-region-head h5 { margin: 0 0 3px; font-size: 13px; }
+.cv-config-region-head p {
+  margin: 0; color: var(--cv-text3, #868990); font-size: 11.5px; line-height: 1.45;
+}
+.cv-config-save-local {
+  background: var(--cv-amber50, #fff4ec); border-color: var(--cv-amber200, #fed7aa);
+}
+.cv-config-save-local.is-disabled {
+  background: var(--cv-surface, #fff); border-color: var(--cv-border, #e5e7eb);
+}
+.cv-config-share {
+  background: var(--cv-amber50, #fff4ec); border-color: var(--cv-amber200, #fed7aa);
+}
+.cv-config-share[hidden] { display: none; }
+.cv-config-share.is-disabled {
+  background: var(--cv-surface, #fff); border-color: var(--cv-border, #e5e7eb);
+}
+.cv-share-create {
+  width: 100%; min-height: 40px; display: inline-flex; align-items: center;
+  justify-content: center; gap: 7px; border: 1px solid var(--cv-amber200, #fed7aa); border-radius: 8px;
+  background: #fff; color: var(--cv-amber700, #c85a0e); font: 700 12px/1 inherit; cursor: pointer;
+}
+.cv-share-create:hover:not(:disabled) { background: var(--cv-amber100, #ffe4d1); }
+.cv-share-create:disabled {
+  border-color: var(--cv-border, #e5e7eb); background: var(--cv-surface2, #f5f7fa);
+  color: var(--cv-text3, #868990); cursor: not-allowed;
+}
+.cv-share-list { display: grid; gap: 6px; margin-top: 8px; }
+.cv-share-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center; gap: 6px; padding-top: 8px; border-top: 1px solid var(--cv-amber200, #fed7aa);
+}
+.cv-share-row > span { color: var(--cv-text3, #868990); font-size: 10.5px; }
+.cv-config-actions {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch; gap: 9px;
+}
+.cv-config-action,
+.cv-config-upload .btn-file {
+  height: 56px; min-height: 56px; width: 100%; display: inline-flex; align-items: center;
+  justify-content: center; gap: 7px; padding: 8px 10px;
+  border: 1px solid var(--cv-border, #d8dce3); border-radius: 8px;
+  background: var(--cv-surface, #fff); color: var(--cv-text, #252527);
+  font-family: inherit; font-size: 12.5px; font-weight: 700; line-height: 1.2;
+  cursor: pointer;
+}
+.cv-config-action:hover:not(:disabled),
+.cv-config-upload .btn-file:hover {
+  background: var(--cv-surface2, #f5f7fa); border-color: #b9c1cc;
+}
+.cv-config-action-primary {
+  border-color: var(--cv-amber200, #fed7aa); background: var(--cv-amber50, #fff4ec);
+  color: var(--cv-text, #1c1c1e);
+}
+.cv-config-action-primary:hover:not(:disabled) {
+  background: var(--cv-amber100, #ffe4d1); border-color: var(--c-amber-300, #ffb27a);
+}
+.cv-config-action > span,
+.cv-config-upload .btn-file > span { font: inherit !important; }
+.cv-config-action:disabled {
+  opacity: 1; cursor: not-allowed;
+  border-color: var(--cv-border, #e5e7eb); background: var(--cv-surface2, #f5f7fa);
+  color: var(--cv-text3, #868990);
+}
+.cv-config-actions > .cv-config-action,
+.cv-config-actions > .cv-config-upload {
+  align-self: stretch; display: flex; height: 56px; min-height: 56px;
+  min-width: 0; width: 100%; max-width: none;
+}
+.cv-config-upload .form-group,
+.cv-config-upload .input-group,
+.cv-config-upload .input-group-btn,
+.cv-config-upload .input-group-prepend,
+.cv-config-upload .btn-file {
+  height: 100%; margin: 0; min-width: 0; width: 100% !important;
+  max-width: none !important; box-sizing: border-box;
+}
+.cv-config-upload .form-group,
+.cv-config-upload .shiny-input-container {
+  display: flex; min-width: 0; width: 100% !important; max-width: none !important;
+}
+.cv-config-upload .input-group { display: block !important; width: 100% !important; }
+.cv-config-upload .input-group-btn,
+.cv-config-upload .input-group-prepend {
+  display: block !important; flex: 0 0 100% !important;
+}
+.cv-config-upload .btn-file {
+  display: flex !important; align-items: center; justify-content: center;
+  white-space: nowrap;
+}
+.cv-config-upload .form-control { display: none; }
+.cv-config-upload .shiny-file-input-progress { display: none !important; }
+.cv-config-upload { position: relative; }
+.cv-config-upload.is-uploading .btn-file { padding-bottom: 17px; }
+.cv-config-upload.is-uploading::before {
+  content: "Loading…"; position: absolute; z-index: 2; left: 12px; bottom: 6px;
+  color: var(--cv-text3, #868990); font-size: 10px; font-weight: 650;
+}
+.cv-config-upload.is-uploading::after {
+  content: ""; position: absolute; z-index: 2; right: 12px; bottom: 9px;
+  width: 44%; height: 3px; border-radius: 999px;
+  background: linear-gradient(90deg, var(--cv-amber200, #fed7aa) 0 35%,
+    var(--cv-amber, #f97316) 50%, var(--cv-amber200, #fed7aa) 65% 100%);
+  background-size: 220% 100%; animation: cv-config-loading 1.1s linear infinite;
+}
+@keyframes cv-config-loading { to { background-position: -220% 0; } }
+.cv-snapshot-library {
+  margin-top: 12px; padding-top: 12px;
+  border-top: 1px solid var(--cv-amber200, #fed7aa);
+}
+.cv-config-save-local.is-disabled .cv-snapshot-library {
+  border-top-color: var(--cv-border, #e5e7eb);
+}
+.cv-snapshot-library h6 { margin: 0; font-size: 11.5px; }
+.cv-snapshot-save,
+.cv-snapshot-action {
+  border: 1px solid var(--cv-border, #d8dce3); border-radius: 6px;
+  background: var(--cv-surface, #fff); color: var(--cv-text2, #575a60);
+  font: 700 11px/1 inherit; cursor: pointer;
+}
+.cv-snapshot-save { height: 30px; padding: 0 9px; white-space: nowrap; }
+.cv-config-save-local .cv-snapshot-save {
+  width: 100%; min-height: 40px; display: inline-flex; align-items: center;
+  justify-content: center; gap: 7px; border-color: var(--cv-amber200, #fed7aa);
+  background: #fff; color: var(--cv-amber700, #c85a0e);
+}
+.cv-snapshot-save:hover:not(:disabled),
+.cv-snapshot-action:hover { background: var(--cv-surface2, #f5f7fa); color: var(--cv-text, #252527); }
+.cv-snapshot-save:disabled {
+  opacity: 1; cursor: not-allowed;
+  border-color: var(--cv-border, #e5e7eb); background: var(--cv-surface2, #f5f7fa);
+  color: var(--cv-text3, #868990);
+}
+.cv-snapshot-list { display: grid; gap: 6px; margin-top: 8px; }
+.cv-snapshot-empty { margin: 0; color: var(--cv-text3, #868990); font-size: 12px; }
+.cv-snapshot-row {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center; gap: 10px; padding: 10px 0;
+  border-top: 1px solid var(--cv-surface2, #f5f5f5);
+}
+.cv-snapshot-mark {
+  display: grid; place-items: center; width: 28px; height: 28px; border-radius: 7px;
+  background: var(--cv-amber50, #fff4ec); color: var(--cv-amber700, #c85a0e);
+  font-size: 17px; line-height: 1;
+}
+.cv-snapshot-details { min-width: 0; display: grid; gap: 2px; }
+.cv-snapshot-details strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.cv-snapshot-details span { color: var(--cv-text3, #868990); font-size: 10.5px; }
+.cv-snapshot-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
+.cv-snapshot-action { height: 24px; padding: 0 6px; font-size: 10.5px; }
+.cv-snapshot-primary .cv-snapshot-action {
+  border-color: var(--cv-amber200, #fed7aa); color: var(--cv-amber700, #c85a0e);
+}
+.cv-config-status {
+  min-height: 20px; margin: 14px 0 0; padding-top: 12px;
+  border-top: 1px solid var(--cv-border, #e5e7eb);
+  color: var(--cv-text2, #666); font-size: 12.5px; line-height: 1.45;
+}
+.cv-config-status:empty { display: none; }
+.cv-config-status.is-success {
+  display: block; margin-top: 14px; padding: 10px 12px 10px 40px;
+  border: 1px solid #a7d8bd; border-radius: 8px; background: #effaf3;
+  color: #176b42; font-weight: 650; position: relative;
+}
+.cv-config-status.is-success::before {
+  content: "✓"; position: absolute; left: 12px; top: 50%;
+  width: 18px; height: 18px; margin-top: -9px; border-radius: 50%;
+  background: #238653; color: #fff; font-size: 12px; font-weight: 800;
+  line-height: 18px; text-align: center;
+}
+.cv-config-status.is-working {
+  display: block; margin-top: 14px; padding: 10px 12px 10px 36px;
+  border: 1px solid var(--cv-amber200, #fed7aa); border-radius: 8px;
+  background: var(--cv-amber50, #fff4ec); color: var(--cv-amber700, #c85a0e);
+  font-weight: 650; position: relative;
+}
+.cv-config-status.is-working::before {
+  content: ""; position: absolute; left: 12px; top: 50%; width: 13px; height: 13px;
+  margin-top: -7px; border: 2px solid var(--cv-amber200, #fed7aa);
+  border-top-color: var(--cv-amber, #f97316); border-radius: 50%;
+  animation: cv-config-spin .75s linear infinite;
+}
+@keyframes cv-config-spin { to { transform: rotate(360deg); } }
+.cv-config-status.is-error {
+  display: block; margin-top: 14px; padding: 10px 12px 10px 40px;
+  border: 1px solid #f5b5b5; border-radius: 8px; background: #fff1f1;
+  color: var(--cv-red700, #a72b2b); font-weight: 650; line-height: 1.45;
+  position: relative;
+}
+.cv-config-status.is-error::before {
+  content: "!"; position: absolute; left: 12px; top: 50%;
+  width: 18px; height: 18px; margin-top: -9px; border-radius: 50%;
+  background: var(--cv-red700, #a72b2b); color: #fff;
+  display: grid; place-items: center; font-size: 12px; font-weight: 800;
+}
+.cv-config-status.is-error .cv-config-status-title {
+  display: block; margin-bottom: 2px; color: #8f1f1f; font-size: 12.5px;
+}
+.cv-config-dialog :focus-visible,
+.coordviews-page .cv-config-open:focus-visible {
+  outline: 3px solid rgba(249, 115, 22, .3); outline-offset: 2px;
+}
+@media (max-width: 620px) {
+  .cv-config-dialog { padding: 20px; }
+  .cv-config-actions { grid-template-columns: 1fr; }
+  .cv-snapshot-row { grid-template-columns: auto minmax(0, 1fr); }
+  .cv-snapshot-primary, .cv-snapshot-actions { grid-column: 2; justify-content: flex-start; }
 }
 .cv-insight-modal::backdrop { background: rgba(0, 0, 0, .42); }
 .cv-insight-modal .cv-insight-x {

@@ -3291,6 +3291,46 @@ test_that("named lists of scalar paths are accepted", {
   expect_true(file.exists(file.path(app, "private-data", "dataset.crb")))
 })
 
+test_that("generated apps include the linked-view configuration runtime", {
+  root <- withr::local_tempdir()
+  crb <- write_bundle_crb(file.path(root, "source"))
+  app <- file.path(root, "app")
+
+  build_test_app(c("Dataset" = crb), app)
+
+  expect_true(file.exists(file.path(
+    app,
+    "viewer",
+    "coordinated_views",
+    "config.R"
+  )))
+  expect_true(file.exists(file.path(
+    app,
+    "viewer",
+    "www",
+    "viewer-clipboard.js"
+  )))
+  expect_true(file.exists(file.path(
+    app,
+    "viewer",
+    "www",
+    "coordviews-config-cache.js"
+  )))
+  expect_true(file.exists(file.path(
+    app,
+    "viewer",
+    "www",
+    "coordviews-config.js"
+  )))
+  ui_text <- paste(
+    readLines(file.path(app, "viewer", "shiny_UI.R")),
+    collapse = "\n"
+  )
+  expect_match(ui_text, "viewer-clipboard\\.js")
+  expect_match(ui_text, "coordviews-config-cache\\.js")
+  expect_match(ui_text, "coordviews-config\\.js")
+})
+
 test_that("Cerebro data labels cannot be missing", {
   root <- withr::local_tempdir()
   crb <- write_bundle_crb(file.path(root, "source"))
