@@ -5242,7 +5242,11 @@ var focusPanel = null;
 
   function setConfigFocus(spaceId) {
     var desired = null;
-    panels.forEach(function (panel) { if (panel.spaceId === spaceId) desired = panel.key; });
+    if (spaceId != null) {
+      panels.forEach(function (panel) {
+        if (panel.spaceId != null && panel.spaceId === spaceId) desired = panel.key;
+      });
+    }
     if (focusPanel && focusPanel !== desired) setFocusPanel(focusPanel);
     if (desired && focusPanel !== desired) setFocusPanel(desired);
   }
