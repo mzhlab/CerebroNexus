@@ -10,6 +10,7 @@
   function fallbackCopy(text) {
     var input = null;
     var copied = false;
+    var previousFocus = root.document && root.document.activeElement;
     try {
       input = root.document.createElement('textarea');
       input.value = text;
@@ -23,14 +24,18 @@
       copied = false;
     } finally {
       if (input && input.parentNode) input.parentNode.removeChild(input);
+      if (previousFocus && typeof previousFocus.focus === 'function') {
+        previousFocus.focus();
+      }
     }
-    return Promise.resolve(copied);
+    return copied;
   }
 
   function copyText(text) {
+    if (fallbackCopy(text)) return Promise.resolve(true);
     var clipboard = root.navigator && root.navigator.clipboard;
     if (!clipboard || typeof clipboard.writeText !== 'function') {
-      return fallbackCopy(text).catch(function () { return false; });
+      return Promise.resolve(false);
     }
     return new Promise(function (resolve) {
       var settled = false;

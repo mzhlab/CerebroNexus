@@ -57,7 +57,7 @@
       var fingerprint = document.createElement('small');
       fingerprint.textContent = String(record.fingerprint || '').slice(0, 16) + '…';
       dataset.appendChild(name); dataset.appendChild(fingerprint); row.appendChild(dataset);
-      [formatDate(record.created_at), formatDate(record.expires_at), record.creator || 'Administrator'].forEach(function (text) {
+      [formatDate(record.created_at), formatDate(record.expires_at), record.creator || 'Anonymous'].forEach(function (text) {
         var cell = document.createElement('td'); cell.textContent = text; row.appendChild(cell);
       });
       var actions = document.createElement('td'); actions.className = 'viewer-admin-actions';

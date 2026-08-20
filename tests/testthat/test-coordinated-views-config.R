@@ -603,7 +603,7 @@ test_that("Save and share markup is accessible and bundled in every Viewer", {
   expect_match(controller, "Share link ready.", fixed = TRUE)
   expect_match(
     server,
-    'c("nonce", "action", "config_json", "token")',
+    'c("nonce", "action", "prepared_id", "token")',
     fixed = TRUE
   )
   expect_match(
@@ -632,6 +632,8 @@ test_that("Save and share markup is accessible and bundled in every Viewer", {
     create_branch,
     fixed = TRUE
   ))
+  expect_false(grepl("cv_config_decode", create_branch, fixed = TRUE))
+  expect_match(create_branch, "cv_prepared_share_fetch", fixed = TRUE)
   expect_match(
     controller,
     "Shiny.setInputValue('coordviews_share_request', pendingShare.payload",
@@ -659,7 +661,16 @@ test_that("Save and share markup is accessible and bundled in every Viewer", {
     "The view preparation service is not ready. Reload this page and try again.",
     fixed = TRUE
   )
-  expect_match(controller, "payload.config_json = prepared.json", fixed = TRUE)
+  expect_match(
+    controller,
+    "payload.prepared_id = prepared.prepared_id",
+    fixed = TRUE
+  )
+  expect_false(grepl(
+    "payload.config_json = prepared.json",
+    controller,
+    fixed = TRUE
+  ))
   expect_match(controller, "250", fixed = TRUE)
   expect_false(grepl("request('save')", controller, fixed = TRUE))
   expect_false(grepl("function finishSave", controller, fixed = TRUE))
@@ -717,9 +728,10 @@ test_that("prepared configuration cache rejects stale responses and reuses JSON"
     "setTimeout(()=>{if(sent.length!==2)throw Error('new revision expected');",
     "cache.receive({nonce:stale.nonce,action:'prepare',ok:true,json:'stale'});",
     "const fresh=sent[1];cache.receive({nonce:fresh.nonce,action:'prepare',ok:true,",
-    "json:'canonical',filename:'view.json',selected_cells:1});",
+    "json:'canonical',prepared_id:'prepared-1',filename:'view.json',selected_cells:1});",
     "Promise.all([cache.get(),cache.get()]).then(v=>{",
     "if(v[0].json!=='canonical'||v[1].json!=='canonical')throw Error('cache miss');",
+    "if(v[0].prepared_id!=='prepared-1')throw Error('prepared id missing');",
     "if(sent.length!==2)throw Error('ready cache was not reused');",
     "const slow=api.create({debounceMs:1,requestTimeoutMs:3,capture:()=>state,",
     "send:()=>{},ready:()=>true});",
@@ -747,4 +759,16 @@ test_that("share responses can be replayed without creating duplicate links", {
   expect_match(server, "cv_share_cache(nonce, payload)", fixed = TRUE)
   expect_match(server, "CV_SHARE_REPLAY_LIMIT <- 64L", fixed = TRUE)
   expect_match(server, "rm(list = expired", fixed = TRUE)
+})
+
+test_that("prepared share records are bounded and expire inside one session", {
+  server_file <- file.path(config_inst, "viewer/coordinated_views/server.R")
+  server <- paste(readLines(server_file, warn = FALSE), collapse = "\n")
+
+  expect_match(server, "CV_PREPARED_SHARE_LIMIT <- 8L", fixed = TRUE)
+  expect_match(server, "CV_PREPARED_SHARE_TTL_SECONDS <- 300", fixed = TRUE)
+  expect_match(server, "cv_prepared_share_store", fixed = TRUE)
+  expect_match(server, "cv_prepared_share_fetch", fixed = TRUE)
+  expect_match(server, "dataset_fingerprint", fixed = TRUE)
+  expect_match(server, "prepared_id = prepared_id", fixed = TRUE)
 })

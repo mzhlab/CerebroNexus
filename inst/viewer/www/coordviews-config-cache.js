@@ -116,7 +116,8 @@
         if (waiters.length) schedule(0);
         return false;
       }
-      if (!result.ok || typeof result.json !== 'string') {
+      if (!result.ok || typeof result.json !== 'string' ||
+        typeof result.prepared_id !== 'string' || !result.prepared_id) {
         settleWaiters(new Error(result.message || 'The view could not be prepared.'));
         return true;
       }
@@ -124,6 +125,7 @@
         revision: revision,
         signature: record.signature,
         json: result.json,
+        prepared_id: result.prepared_id,
         filename: result.filename || 'linked-views.json',
         selected_cells: Number(result.selected_cells) || 0
       };

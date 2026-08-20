@@ -95,6 +95,8 @@ test_that("Admin UI and assets expose one coherent management page", {
   expect_match(server, "viewer_is_admin(session)", fixed = TRUE)
   expect_match(server, 'session$clientData$url_pathname', fixed = TRUE)
   expect_match(script, "Copied ✓", fixed = TRUE)
+  expect_match(script, "record.creator || 'Anonymous'", fixed = TRUE)
+  expect_false(grepl("record.creator || 'Administrator'", script, fixed = TRUE))
   expect_match(script, "shiny:connected", fixed = TRUE)
   expect_match(script, "cerebro:share-created", fixed = TRUE)
   expect_match(
@@ -107,6 +109,11 @@ test_that("Admin UI and assets expose one coherent management page", {
     "root.setTimeout(function () { finish(false); }, 500)",
     fixed = TRUE
   )
+  expect_lt(
+    regexpr("if (fallbackCopy(text))", clipboard, fixed = TRUE),
+    regexpr("clipboard.writeText(text)", clipboard, fixed = TRUE)
+  )
+  expect_match(clipboard, "previousFocus.focus()", fixed = TRUE)
   expect_match(script, "window.cerebroClipboard.copyText", fixed = TRUE)
   expect_match(server, "invalidateLater(2000, session)", fixed = TRUE)
 })

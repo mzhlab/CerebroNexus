@@ -57,6 +57,105 @@ coordviews_share_store <- tryCatch(
   cv_share_store_open(cv_share_path),
   error = function(error) NULL
 )
+
+CV_PREPARED_SHARE_LIMIT <- 8L
+CV_PREPARED_SHARE_TTL_SECONDS <- 300
+coordviews_prepared_share_cache <- new.env(parent = emptyenv())
+coordviews_prepared_share_order <- character()
+
+cv_prepared_share_cleanup <- function(now = Sys.time()) {
+  keys <- ls(coordviews_prepared_share_cache, all.names = TRUE)
+  expired <- keys[vapply(
+    keys,
+    function(key) {
+      record <- get(
+        key,
+        envir = coordviews_prepared_share_cache,
+        inherits = FALSE
+      )
+      as.numeric(record$expires_at) <= as.numeric(now)
+    },
+    logical(1)
+  )]
+  if (length(expired)) {
+    rm(list = expired, envir = coordviews_prepared_share_cache)
+    coordviews_prepared_share_order <<- setdiff(
+      coordviews_prepared_share_order,
+      expired
+    )
+  }
+  invisible(NULL)
+}
+
+cv_prepared_share_store <- function(
+  json,
+  dataset_fingerprint,
+  now = Sys.time()
+) {
+  cv_prepared_share_cleanup(now)
+  prepared_id <- cv_share_token()
+  assign(
+    prepared_id,
+    list(
+      json = json,
+      dataset_fingerprint = dataset_fingerprint,
+      expires_at = as.POSIXct(now, tz = "UTC") + CV_PREPARED_SHARE_TTL_SECONDS
+    ),
+    envir = coordviews_prepared_share_cache
+  )
+  coordviews_prepared_share_order <<- c(
+    coordviews_prepared_share_order[
+      coordviews_prepared_share_order != prepared_id
+    ],
+    prepared_id
+  )
+  if (length(coordviews_prepared_share_order) > CV_PREPARED_SHARE_LIMIT) {
+    evicted <- head(
+      coordviews_prepared_share_order,
+      length(coordviews_prepared_share_order) - CV_PREPARED_SHARE_LIMIT
+    )
+    rm(list = evicted, envir = coordviews_prepared_share_cache)
+    coordviews_prepared_share_order <<- tail(
+      coordviews_prepared_share_order,
+      CV_PREPARED_SHARE_LIMIT
+    )
+  }
+  prepared_id
+}
+
+cv_prepared_share_fetch <- function(
+  prepared_id,
+  dataset_fingerprint,
+  now = Sys.time()
+) {
+  prepared_id <- cv_share_token_input(prepared_id, "preparation")
+  cv_prepared_share_cleanup(now)
+  if (
+    !exists(
+      prepared_id,
+      envir = coordviews_prepared_share_cache,
+      inherits = FALSE
+    )
+  ) {
+    cv_share_abort(
+      "prepare_expired",
+      "This prepared view expired. Prepare it again and retry."
+    )
+  }
+  record <- get(
+    prepared_id,
+    envir = coordviews_prepared_share_cache,
+    inherits = FALSE
+  )
+  if (!identical(record$dataset_fingerprint, dataset_fingerprint)) {
+    cv_share_abort(
+      "invalid_dataset",
+      "The prepared view belongs to a different cell population."
+    )
+  }
+  record
+}
+
 session$onSessionEnded(function() {
   if (
     !is.null(coordviews_share_store) &&
@@ -266,11 +365,16 @@ observeEvent(
           )
           cv_config_integer(request$revision, "$.request.revision")
           prepared <- cv_config_prepare(request$config, cells = bundle$cells)
+          prepared_id <- cv_prepared_share_store(
+            prepared$json,
+            bundle$dataset_fingerprint
+          )
           cv_config_send_result(
             nonce,
             action,
             TRUE,
             json = prepared$json,
+            prepared_id = prepared_id,
             filename = paste0(
               "linked-views-",
               format(Sys.time(), "%Y%m%d-%H%M%S", tz = "UTC"),
@@ -399,7 +503,7 @@ observeEvent(
         cv_config_check_node_limit(request)
         request <- cv_config_record(
           request,
-          c("nonce", "action", "config_json", "token"),
+          c("nonce", "action", "prepared_id", "token"),
           required = c("nonce", "action"),
           path = "$.share_request"
         )
@@ -425,18 +529,12 @@ observeEvent(
         if (identical(action, "share_create")) {
           request <- cv_config_record(
             request,
-            c("nonce", "action", "config_json", "token"),
+            c("nonce", "action", "prepared_id", "token"),
             path = "$.share_request"
           )
-          canonical <- cv_config_string(
-            request$config_json,
-            "$.share_request.config_json",
-            CV_CONFIG_MAX_BYTES
-          )
-          normalized <- cv_config_decode(canonical, cells = bundle$cells)
-          prepared <- list(
-            config = normalized,
-            json = cv_config_encode(normalized)
+          prepared <- cv_prepared_share_fetch(
+            request$prepared_id,
+            bundle$dataset_fingerprint
           )
           created <- cv_share_store_create(
             coordviews_share_store,

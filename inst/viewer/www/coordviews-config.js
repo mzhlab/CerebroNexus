@@ -262,13 +262,17 @@
   }
   function sendShareRequest(action, record, prepared) {
     if (typeof Shiny === 'undefined' || !Shiny.setInputValue || pendingShare) return;
+    if (action === 'share_create' && (!prepared || !prepared.prepared_id)) {
+      status('The prepared view is unavailable. Prepare it again and retry.', 'error');
+      return;
+    }
     var nonce = nextNonce();
     pendingShare = { nonce: nonce, action: action, payload: null, retried: false };
     if (pendingShareTimer) window.clearTimeout(pendingShareTimer);
     status(action === 'share_open' ? 'Opening shared view…' : 'Creating share link…', 'working');
     var payload = { nonce: nonce, action: action };
     if (action === 'share_create') {
-      payload.config_json = prepared.json;
+      payload.prepared_id = prepared.prepared_id;
       var token = randomShareToken();
       if (token) {
         payload.token = token;
