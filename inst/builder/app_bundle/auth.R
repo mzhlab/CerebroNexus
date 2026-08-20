@@ -40,11 +40,14 @@ builder_auth_validate_payload <- function(enabled, accounts) {
   normalized <- vector("list", length(accounts))
   for (index in seq_along(accounts)) {
     account <- accounts[[index]]
-    expected <- c("id", "username", "password")
+    required <- c("id", "username", "password")
+    optional <- "admin"
     if (
       !is.list(account) ||
         is.object(account) ||
-        !identical(sort(names(account)), sort(expected))
+        !all(required %in% names(account)) ||
+        !all(names(account) %in% c(required, optional)) ||
+        anyDuplicated(names(account))
     ) {
       return(invalid(paste0("Account ", index, " is incomplete.")))
     }
@@ -75,10 +78,22 @@ builder_auth_validate_payload <- function(enabled, accounts) {
         " needs a password of at least 8 characters."
       )))
     }
+    admin <- account$admin
+    if (
+      !is.null(admin) &&
+        (!is.logical(admin) || length(admin) != 1L || is.na(admin))
+    ) {
+      return(invalid(paste0(
+        "Account ",
+        index,
+        " has an invalid Admin setting."
+      )))
+    }
     normalized[[index]] <- list(
       id = account$id,
       username = username,
-      password = password
+      password = password,
+      admin = isTRUE(admin)
     )
   }
   ids <- vapply(normalized, `[[`, character(1), "id")
@@ -452,6 +467,7 @@ builder_auth_create_material <- function(
   credentials_data <- data.frame(
     user = vapply(parsed$accounts, `[[`, character(1), "username"),
     password = vapply(parsed$accounts, `[[`, character(1), "password"),
+    admin = vapply(parsed$accounts, `[[`, logical(1), "admin"),
     stringsAsFactors = FALSE
   )
   captured <- tryCatch(

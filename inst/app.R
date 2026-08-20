@@ -129,8 +129,9 @@ options(shiny.maxRequestSize = 800 * 1024^2)
 ##----------------------------------------------------------------------------##
 source("viewer/shiny_UI.R", local = TRUE)
 source("viewer/shiny_server.R", local = TRUE)
+source("viewer/admin/core.R", local = TRUE)
 
 ##----------------------------------------------------------------------------##
 ## launch app
 ##----------------------------------------------------------------------------##
-shiny::shinyApp(ui = ui, server = server)
+viewer_admin_http_app(shiny::shinyApp(ui = ui, server = server))

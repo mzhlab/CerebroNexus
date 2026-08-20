@@ -18,6 +18,31 @@ test_that("only the exact Admin path is rewritten", {
   expect_false(viewer_admin_core$viewer_admin_route("/admin/shares"))
 })
 
+test_that("the built-in Administrator credentials are available", {
+  expect_true(viewer_admin_core$viewer_admin_default_login("admin", "admin123"))
+  expect_false(viewer_admin_core$viewer_admin_default_login("admin", "wrong"))
+  expect_false(viewer_admin_core$viewer_admin_default_login(
+    "alice",
+    "admin123"
+  ))
+})
+
+test_that("both Viewer entrypoints install the Admin HTTP route", {
+  source_app <- paste(
+    readLines(file.path(viewer_admin_inst, "app.R"), warn = FALSE),
+    collapse = "\n"
+  )
+  bundle_app <- paste(
+    readLines(
+      file.path(viewer_admin_inst, "viewer", "_bundle_app.R"),
+      warn = FALSE
+    ),
+    collapse = "\n"
+  )
+  expect_match(source_app, "viewer_admin_http_app", fixed = TRUE)
+  expect_match(bundle_app, "viewer_admin_http_app", fixed = TRUE)
+})
+
 test_that("session authorization defaults closed", {
   session <- list(userData = new.env(parent = emptyenv()))
   expect_identical(
@@ -90,7 +115,11 @@ test_that("Admin UI and assets expose one coherent management page", {
     collapse = "\n"
   )
   expect_match(ui, 'tabName = "admin"', fixed = TRUE)
+  expect_match(ui, 'id = "viewer-admin-login"', fixed = TRUE)
+  expect_match(ui, 'id = "viewer-admin-content"', fixed = TRUE)
   expect_match(ui, "Shared views", fixed = TRUE)
+  expect_match(server, "viewer_admin_login", fixed = TRUE)
+  expect_match(server, "viewer_admin_default_login", fixed = TRUE)
   expect_match(server, "viewer_admin_request", fixed = TRUE)
   expect_match(server, "viewer_is_admin(session)", fixed = TRUE)
   expect_match(server, 'session$clientData$url_pathname', fixed = TRUE)
@@ -124,9 +153,11 @@ test_that("Admin UI and assets expose one coherent management page", {
   )
   expect_false(grepl("target.disabled = true", script, fixed = TRUE))
   expect_match(server, "invalidateLater(2000, session)", fixed = TRUE)
+  expect_match(script, "viewer_admin_login", fixed = TRUE)
+  expect_match(script, "viewer-admin-content", fixed = TRUE)
 })
 
-test_that("Admin deep links switch tabs only after the menu is inserted", {
+test_that("Admin deep links expose the login tab before authorization", {
   server <- paste(
     readLines(
       file.path(viewer_admin_inst, "viewer/admin/server.R"),
@@ -134,23 +165,10 @@ test_that("Admin deep links switch tabs only after the menu is inserted", {
     ),
     collapse = "\n"
   )
-  admin_start <- regexpr(
-    "if (viewer_is_admin(session)) {",
-    server,
-    fixed = TRUE
-  )[[1L]]
-  viewer_start <- regexpr(
-    "} else {",
-    server,
-    fixed = TRUE
-  )[[1L]]
-  expect_gt(admin_start, 0L)
-  expect_gt(viewer_start, admin_start)
-  admin_flush <- substr(server, admin_start, viewer_start - 1L)
-  insert_at <- regexpr("insertUI(", admin_flush, fixed = TRUE)[[1L]]
+  insert_at <- regexpr("insertUI(", server, fixed = TRUE)[[1L]]
   select_at <- regexpr(
     'updateTabItems(session, "sidebar", selected = "admin")',
-    admin_flush,
+    server,
     fixed = TRUE
   )[[1L]]
   expect_gt(insert_at, 0L)

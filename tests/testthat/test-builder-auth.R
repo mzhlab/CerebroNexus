@@ -25,6 +25,7 @@ test_that("Builder auth normalizes usernames but never passwords", {
     parsed$accounts[[1L]]$password,
     "auth-password-a-7f31"
   )
+  expect_false(parsed$accounts[[1L]]$admin)
   expect_identical(
     builder_auth_summary(TRUE, parsed$accounts),
     list(enabled = TRUE, account_count = 2L, timeout_minutes = 15L)
@@ -186,6 +187,16 @@ test_that("Builder auth preserves an exactly eight-character password", {
   expect_identical(parsed$accounts[[1L]]$password, "eight888")
 })
 
+test_that("Builder auth preserves Administrator assignments", {
+  accounts <- builder_auth_test_accounts()
+  accounts[[2L]]$admin <- TRUE
+  parsed <- builder_auth_validate_payload(TRUE, accounts)
+
+  expect_true(parsed$ok)
+  expect_false(parsed$accounts[[1L]]$admin)
+  expect_true(parsed$accounts[[2L]]$admin)
+})
+
 test_that("disabled Builder auth discards browser account residue", {
   parsed <- builder_auth_validate_payload(TRUE, builder_auth_test_accounts())
   disabled <- builder_auth_validate_payload(FALSE, parsed$accounts)
@@ -252,12 +263,15 @@ test_that("authentication env reader rejects wrong name multiline mode and links
 
 test_that("authentication material contains paths but no login secrets", {
   stage <- withr::local_tempdir()
+  source_accounts <- builder_auth_test_accounts()
+  source_accounts[[2L]]$admin <- TRUE
   accounts <- builder_auth_validate_payload(
     TRUE,
-    builder_auth_test_accounts()
+    source_accounts
   )$accounts
   create_db <- function(credentials_data, sqlite_path, passphrase) {
-    expect_identical(names(credentials_data), c("user", "password"))
+    expect_identical(names(credentials_data), c("user", "password", "admin"))
+    expect_identical(credentials_data$admin, c(FALSE, TRUE))
     expect_identical(passphrase, strrep("0b", 32L))
     writeBin(as.raw(1:8), sqlite_path)
   }

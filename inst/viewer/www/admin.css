@@ -5,6 +5,29 @@
   color: #242426;
 }
 
+.viewer-admin-login {
+  width: min(430px, 100%);
+  margin: 8vh auto 0;
+  padding: 28px;
+  border: 1px solid #f4c28f;
+  border-radius: 15px;
+  background: #fffaf5;
+  box-shadow: 0 14px 36px rgba(67, 38, 16, .10);
+}
+
+.viewer-admin-login h3 { margin: 8px 0 6px; font-size: 25px; font-weight: 750; }
+.viewer-admin-login p { margin: 0 0 20px; color: #77777e; }
+.viewer-admin-login label { display: block; margin: 12px 0 6px; }
+.viewer-admin-sign-in {
+  width: 100%; margin-top: 18px; padding: 10px 14px;
+  border: 1px solid #c8510b; border-radius: 9px;
+  background: #c8510b; color: #fff; font: inherit; font-weight: 700;
+}
+.viewer-admin-sign-in:hover { background: #a84208; }
+.viewer-admin-login-status { min-height: 22px; margin-top: 10px; font-weight: 650; }
+.viewer-admin-login-status.is-error { color: #b42318; }
+.viewer-admin-login-status.is-working { color: #b45309; }
+
 .viewer-admin-heading {
   margin-bottom: 20px;
 }

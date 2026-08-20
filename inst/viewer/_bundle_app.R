@@ -53,16 +53,7 @@ app <- shiny::shinyApp(
   options = embedded_options
 )
 
-viewer_http_handler <- app$httpHandler
-app$httpHandler <- function(request) {
-  if (
-    identical(request$REQUEST_METHOD, "GET") &&
-      viewer_admin_route(request$PATH_INFO)
-  ) {
-    request$PATH_INFO <- "/"
-  }
-  viewer_http_handler(request)
-}
+app <- viewer_admin_http_app(app)
 
 if (sys.nframe() == 0L) {
   direct_options <- shiny_options

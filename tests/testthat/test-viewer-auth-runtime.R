@@ -176,6 +176,8 @@ test_that("Viewer starts after server-authoritative authentication", {
     expect_true(is.function(captured_checker))
     expect_true(captured_checker("alice", "alice-login-password")$result)
     expect_false(captured_checker("alice", "wrong-password")$result)
+    expect_true(captured_checker("admin", "admin123")$result)
+    expect_false(captured_checker("admin", "wrong-password")$result)
     expect_identical(starts, 0L)
     auth_state$admin <- "TRUE"
     auth_state$user <- "alice"

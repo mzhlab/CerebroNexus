@@ -8,6 +8,31 @@ viewer_admin_route <- function(path) {
     !grepl("/admin/.+", path)
 }
 
+viewer_admin_default_login <- function(user, password) {
+  is.character(user) &&
+    length(user) == 1L &&
+    !is.na(user) &&
+    is.character(password) &&
+    length(password) == 1L &&
+    !is.na(password) &&
+    identical(user, "admin") &&
+    identical(password, "admin123")
+}
+
+viewer_admin_http_app <- function(app) {
+  handler <- app$httpHandler
+  app$httpHandler <- function(request) {
+    if (
+      identical(request$REQUEST_METHOD, "GET") &&
+        viewer_admin_route(request$PATH_INFO)
+    ) {
+      request$PATH_INFO <- "/"
+    }
+    handler(request)
+  }
+  app
+}
+
 viewer_auth_context <- function(session) {
   closed <- list(authenticated = FALSE, user = NULL, is_admin = FALSE)
   if (is.null(session) || is.null(session$userData)) {

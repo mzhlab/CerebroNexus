@@ -116,7 +116,7 @@ builder_auth_dialog_ui <- function() {
       h2(id = "builder-auth-title", "Login accounts"),
       p(
         class = "hint",
-        "Add the usernames and passwords allowed to open this Viewer."
+        "Add the usernames and passwords allowed to open this Viewer. Mark users who may manage shared links as Admin."
       ),
       div(
         id = "builder-auth-error",

@@ -35,55 +35,82 @@ viewer_admin_inventory <- function(nonce = "") {
   invisible(NULL)
 }
 
-if (viewer_is_admin(session)) {
-  session$onFlushed(
-    function() {
-      insertUI(
-        selector = "#sidebar_item_admin_placeholder",
-        where = "afterEnd",
-        ui = tags$li(
-          id = "sidebar_item_admin",
-          menuItem(
-            "Admin",
-            tabName = "admin",
-            icon = icon("shield-halved")
-          )$children
-        ),
-        immediate = TRUE
-      )
-      session$sendCustomMessage(
-        "viewer_admin_capability",
-        list(allowed = TRUE, user = viewer_auth_context(session)$user)
-      )
-      if (viewer_admin_route(isolate(session$clientData$url_pathname))) {
-        updateTabItems(session, "sidebar", selected = "admin")
-        viewer_admin_inventory()
-      }
-    },
-    once = TRUE
-  )
-} else {
-  session$onFlushed(
-    function() {
-      session$sendCustomMessage(
-        "viewer_admin_capability",
-        list(allowed = FALSE)
-      )
-      if (viewer_admin_route(isolate(session$clientData$url_pathname))) {
-        showNotification(
-          "Administrator access is required.",
-          type = "error",
-          duration = 6
-        )
-        session$sendCustomMessage(
-          "viewer_admin_access",
-          list(allowed = FALSE)
-        )
-      }
-    },
-    once = TRUE
-  )
+admin_route <- viewer_admin_route(isolate(session$clientData$url_pathname))
+admin_menu_inserted <- FALSE
+viewer_admin_expose <- function(select = FALSE) {
+  if (!admin_menu_inserted) {
+    insertUI(
+      selector = "#sidebar_item_admin_placeholder",
+      where = "afterEnd",
+      ui = tags$li(
+        id = "sidebar_item_admin",
+        menuItem(
+          "Admin",
+          tabName = "admin",
+          icon = icon("shield-halved")
+        )$children
+      ),
+      immediate = TRUE
+    )
+    admin_menu_inserted <<- TRUE
+  }
+  if (select) updateTabItems(session, "sidebar", selected = "admin")
 }
+
+session$onFlushed(
+  function() {
+    allowed <- viewer_is_admin(session)
+    if (admin_route || allowed) {
+      viewer_admin_expose(select = admin_route)
+    }
+    session$sendCustomMessage(
+      "viewer_admin_access",
+      list(
+        allowed = allowed,
+        user = if (allowed) viewer_auth_context(session)$user else NULL
+      )
+    )
+    if (allowed) viewer_admin_inventory()
+  },
+  once = TRUE
+)
+
+admin_login_failures <- 0L
+observeEvent(
+  input[["viewer_admin_login"]],
+  {
+    request <- input[["viewer_admin_login"]]
+    user <- if (is.list(request)) request$user else NULL
+    password <- if (is.list(request)) request$password else NULL
+    if (admin_login_failures >= 5L) {
+      session$sendCustomMessage(
+        "viewer_admin_access",
+        list(allowed = FALSE, locked = TRUE)
+      )
+      return(invisible(NULL))
+    }
+    if (!viewer_admin_default_login(user, password)) {
+      admin_login_failures <<- admin_login_failures + 1L
+      session$sendCustomMessage(
+        "viewer_admin_access",
+        list(allowed = FALSE, invalid = TRUE)
+      )
+      return(invisible(NULL))
+    }
+    assign(
+      "viewer_auth",
+      list(authenticated = TRUE, user = "admin", is_admin = TRUE),
+      envir = session$userData
+    )
+    viewer_admin_expose(select = TRUE)
+    session$sendCustomMessage(
+      "viewer_admin_access",
+      list(allowed = TRUE, user = "admin")
+    )
+    viewer_admin_inventory()
+  },
+  ignoreInit = TRUE
+)
 
 observe({
   req(viewer_is_admin(session))

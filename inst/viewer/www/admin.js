@@ -14,6 +14,27 @@
     node.textContent = message || '';
     node.className = 'viewer-admin-status' + (kind ? ' is-' + kind : '');
   }
+  function loginStatus(message, kind) {
+    var node = byId('viewer-admin-login-status');
+    if (!node) return;
+    node.textContent = message || '';
+    node.className = 'viewer-admin-login-status' + (kind ? ' is-' + kind : '');
+  }
+  function setAccess(result) {
+    var allowed = !!(result && result.allowed);
+    var login = byId('viewer-admin-login');
+    var content = byId('viewer-admin-content');
+    if (login) login.style.display = allowed ? 'none' : '';
+    if (content) content.style.display = allowed ? '' : 'none';
+    if (!allowed && result && result.locked) {
+      loginStatus('Too many failed attempts. Reload the page to try again.', 'error');
+    } else if (!allowed && result && result.invalid) {
+      loginStatus('Incorrect username or password.', 'error');
+    } else if (allowed) {
+      loginStatus('');
+      send('list');
+    }
+  }
   function appBasePath() {
     var path = window.location.pathname.replace(/\/admin\/?$/, '/');
     return path || '/';
@@ -98,17 +119,29 @@
     if (shinyBound || typeof Shiny === 'undefined' || !Shiny.addCustomMessageHandler) return;
     shinyBound = true;
     Shiny.addCustomMessageHandler('viewer_admin_result', receive);
-    Shiny.addCustomMessageHandler('viewer_admin_access', function (result) {
-      if (result && result.allowed === false) {
-        window.history.replaceState(
-          {},
-          '',
-          appBasePath() + window.location.search + window.location.hash
-        );
-      }
-    });
+    Shiny.addCustomMessageHandler('viewer_admin_access', setAccess);
   }
   function boot() {
+    var signIn = byId('viewer-admin-sign-in');
+    var submitLogin = function () {
+      if (typeof Shiny === 'undefined' || !Shiny.setInputValue) return;
+      var user = byId('viewer-admin-user');
+      var password = byId('viewer-admin-password');
+      loginStatus('Signing in…', 'working');
+      Shiny.setInputValue('viewer_admin_login', {
+        user: user ? user.value : '',
+        password: password ? password.value : '',
+        nonce: nonce()
+      }, { priority: 'event' });
+      if (password) password.value = '';
+    };
+    if (signIn) signIn.addEventListener('click', submitLogin);
+    ['viewer-admin-user', 'viewer-admin-password'].forEach(function (id) {
+      var field = byId(id);
+      if (field) field.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') { event.preventDefault(); submitLogin(); }
+      });
+    });
     var refresh = byId('viewer-admin-refresh');
     if (refresh) refresh.addEventListener('click', function () { send('list'); });
     window.addEventListener('cerebro:share-created', function () { send('list'); });
