@@ -123,6 +123,26 @@ test_that("the browser adapter round-trips a brushed cohort transactionally", {
     ),
     "polite"
   )
+  expect_false(app$get_js("document.getElementById('cv-config-share').hidden"))
+  app$wait_for_js(
+    "document.getElementById('cv-share-create').disabled === false",
+    timeout = 10000
+  )
+  app$run_js("document.getElementById('cv-share-create').click();")
+  app$wait_for_js(
+    paste0(
+      "document.getElementById('cv-config-status').textContent",
+      ".indexOf('Share link ready.')>=0"
+    ),
+    timeout = 20000
+  )
+  expect_no_match(
+    app$get_js("document.getElementById('cv-config-status').textContent"),
+    "Administrator access is required"
+  )
+  expect_true(app$get_js(
+    "document.querySelector('#cv-share-list button') !== null"
+  ))
   actions <- app$get_js(paste0(
     "(function(){",
     "var ids=['cv-config-download','cv-config-copy'];",
