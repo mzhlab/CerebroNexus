@@ -206,7 +206,7 @@ git commit -m "docs(viewer): add biological main case walkthrough"
 **文件：**
 - 验证：上述全部文件
 
-- [ ] **步骤 1：重跑生成器并检查无漂移**
+- [x] **步骤 1：重跑生成器并检查无漂移**
 
 ```bash
 Rscript data-raw/build_hla_tcr_main_case.R
@@ -215,7 +215,7 @@ git diff --exit-code -- \
   inst/extdata/examples/demo_hla_tcr_main_case.linked-view.json
 ```
 
-- [ ] **步骤 2：运行相关回归测试**
+- [x] **步骤 2：运行相关回归测试**
 
 ```bash
 Rscript -e 'pkgload::load_all(".", quiet = TRUE); testthat::test_file("tests/testthat/test-hla-tcr-main-case.R", reporter = "summary"); testthat::test_file("tests/testthat/test-coordinated-views-config.R", reporter = "summary"); testthat::test_file("tests/testthat/test-hla-app-contract.R", reporter = "summary")'
@@ -223,7 +223,7 @@ Rscript -e 'pkgload::load_all(".", quiet = TRUE); testthat::test_file("tests/tes
 
 预期：全部 0 failures、0 warnings。
 
-- [ ] **步骤 3：检查格式与仓库状态**
+- [x] **步骤 3：检查格式与仓库状态**
 
 ```bash
 git diff --check
