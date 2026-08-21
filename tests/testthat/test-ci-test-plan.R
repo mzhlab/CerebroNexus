@@ -15,6 +15,13 @@ test_that("the Builder CI plan classifies every present test", {
   ))
 
   expect_identical(plan$process_sensitive, "test-builder-worker.R")
+  expect_true(all(
+    c(
+      "test-coordinated-views-config-browser.R",
+      "test-hla-tcr-main-case-browser.R"
+    ) %in%
+      plan$browser
+  ))
   classified <- c(plan$logic, plan$process_sensitive, plan$browser)
   expect_setequal(classified, discovered)
   expect_false(anyDuplicated(classified) > 0L)
