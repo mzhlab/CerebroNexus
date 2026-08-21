@@ -60,6 +60,7 @@ config_browser_bundle_js <- function() {
 test_that("the browser adapter round-trips a brushed cohort transactionally", {
   local_app_support(config_browser_inst)
   app <- config_browser_app()
+  release_version <- as.character(utils::packageVersion("CerebroNexus"))
   on.exit(app$stop(), add = TRUE)
 
   app$run_js(config_browser_bundle_js())
@@ -83,7 +84,9 @@ test_that("the browser adapter round-trips a brushed cohort transactionally", {
   app$run_js(paste0(
     "localStorage.setItem('cerebro.linked-views.snapshots.v1',JSON.stringify({",
     "version:1,records:[{id:'saved-no-selection',name:'Saved before clear',",
-    "saved_at:'2026-08-21T00:00:00Z',app_version:'5.0.0',json:JSON.stringify({",
+    "saved_at:'2026-08-21T00:00:00Z',app_version:",
+    shQuote(release_version),
+    ",json:JSON.stringify({",
     "dataset:{cell_fingerprint:'md5-cell-set-v1:0123456789abcdef0123456789abcdef'},",
     "selection:{cells:[]},view:{colour:{mode:'cell_type'}}})}]}));"
   ))

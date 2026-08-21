@@ -1,3 +1,14 @@
+# CerebroNexus 5.1.0
+
+## Linked views
+
+- Linked-view configurations can be saved locally, imported and exported as
+  portable JSON, and shared as validated, read-only links. Administrators can
+  inspect and revoke active links without exposing the underlying data bundle.
+- Shared configurations retain their dataset and selection contract, so replay
+  rejects incompatible data instead of silently applying a view to the wrong
+  cells.
+
 # CerebroNexus 5.0.0
 
 ## Builder

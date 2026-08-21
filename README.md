@@ -73,6 +73,10 @@ A selection made in any selectable two-dimensional panel is applied across the
 workspace, so the cohort can be inspected in each modality without exporting or
 recreating it.
 
+The enhanced workspace can also save, import, export, and share a validated
+configuration. Shared links are read-only; authenticated administrators can
+review and revoke them without publishing a data bundle.
+
 ## License
 
 MIT, see [LICENSE.md](LICENSE.md). 

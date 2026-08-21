@@ -18,7 +18,7 @@ Cerebro.options <<- list(
   ## Keep the source demo runnable directly from inst/ without requiring an
   ## installed CerebroNexus package. Exported apps receive this value in
   ## cerebro_config.rds when createShinyApp() builds them.
-  "cerebro_version" = "5.0.0",
+  "cerebro_version" = "5.1.0",
   "admin_account" = getOption("cerebro.admin.account", "admin"),
   "admin_password" = getOption("cerebro.admin.password", "admin123"),
   ## This bundled app ships several distinct demo data sets so the sidebar
