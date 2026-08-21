@@ -18,7 +18,7 @@
 - 创建：`inst/extdata/examples/demo_hla_tcr_main_case.expectations.json`
 - 创建：`inst/extdata/examples/demo_hla_tcr_main_case.linked-view.json`
 
-- [ ] **步骤 1：编写失败的产物契约测试**
+- [x] **步骤 1：编写失败的产物契约测试**
 
 测试先定位 bundled `.crb` 和两个预期 JSON。若 JSON 不存在，用
 `expect_true(file.exists(...))` 产生明确失败；存在后独立执行以下断言：
@@ -62,7 +62,7 @@ expect_length(members, 34L)
 最后 source `config.R`，用 12,000 个 dataset cells 解码 portable JSON，并
 断言 selection、`sample` colour、UMAP 和 rank-stack 布局。
 
-- [ ] **步骤 2：运行测试验证失败**
+- [x] **步骤 2：运行测试验证失败**
 
 运行：
 
@@ -72,7 +72,7 @@ Rscript -e 'pkgload::load_all(".", quiet = TRUE); testthat::test_file("tests/tes
 
 预期：FAIL，明确报告两个 main-case JSON 尚不存在。
 
-- [ ] **步骤 3：实现确定性生成脚本**
+- [x] **步骤 3：实现确定性生成脚本**
 
 脚本必须：
 
@@ -106,7 +106,7 @@ view = list(
   projections = "umap",
   spatial_sections = character(),
   active_spatial = NULL,
-  filters = list(),
+  filters = structure(list(), names = character()),
   hidden_levels = list(),
   display = list(
     percentage_cells = 100,
@@ -116,7 +116,18 @@ view = list(
     selection_mode = "box",
     clone_layout = "stack"
   ),
-  lenses = list(),
+  lenses = list(
+    list(
+      space = "projection::umap",
+      viewport = list(cx = 0.5, cy = 0.5, span = 1),
+      rotation = NULL
+    ),
+    list(
+      space = "clone",
+      viewport = list(cx = 0.5, cy = 0.5, span = 1),
+      rotation = NULL
+    )
+  ),
   spatial_backgrounds = list(),
   trekker = list(dissolve_percentage = 0, evidence = FALSE, niche_radius = 250)
 )
@@ -125,7 +136,7 @@ view = list(
 geometry 使用 `space = "clone"` 和包围 rank-stack 第六列的四点 box；最终
 再次 decode，确认所选 barcode 与 manifest 完全一致后才写文件。
 
-- [ ] **步骤 4：运行生成器并验证绿灯**
+- [x] **步骤 4：运行生成器并验证绿灯**
 
 运行：
 
@@ -136,7 +147,7 @@ Rscript -e 'pkgload::load_all(".", quiet = TRUE); testthat::test_file("tests/tes
 
 预期：生成 manifest 与 portable JSON；focused test 为 0 failures。
 
-- [ ] **步骤 5：提交数据契约**
+- [x] **步骤 5：提交数据契约**
 
 ```bash
 git add tests/testthat/test-hla-tcr-main-case.R \
