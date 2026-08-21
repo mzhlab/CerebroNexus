@@ -28,6 +28,21 @@ case_contract_file <- file.path(
   "viewer/coordinated_views/config.R"
 )
 
+case_root_candidates <- c(
+  normalizePath(".", mustWork = FALSE),
+  normalizePath("../..", mustWork = FALSE),
+  normalizePath(testthat::test_path("../.."), mustWork = FALSE)
+)
+case_root <- case_root_candidates[file.exists(file.path(
+  case_root_candidates,
+  "DESCRIPTION"
+))][1]
+case_vignette_file <- file.path(
+  case_root,
+  "vignettes/hla_tcr_main_case.Rmd"
+)
+case_pkgdown_file <- file.path(case_root, "_pkgdown.yml")
+
 case_target_ctgene <- paste0(
   "TRAV27.TRAJ42.TRAC_",
   "TRBV19.None.TRBJ2-7.TRBC2"
@@ -206,4 +221,31 @@ test_that("the HLA/TCR main-case artifacts match the shipped biology", {
     config$dataset$cell_fingerprint,
     config_environment$cv_config_cell_fingerprint(cells)
   )
+})
+
+test_that("the HLA/TCR main case is documented as a published workflow", {
+  expect_true(
+    file.exists(case_vignette_file),
+    info = "the interactive biological walkthrough must be written"
+  )
+  expect_true(file.exists(case_pkgdown_file))
+  if (!file.exists(case_vignette_file) || !file.exists(case_pkgdown_file)) {
+    return(invisible(NULL))
+  }
+
+  guide <- paste(readLines(case_vignette_file, warn = FALSE), collapse = "\n")
+  pkgdown <- paste(readLines(case_pkgdown_file, warn = FALSE), collapse = "\n")
+  expect_match(guide, "293 cells", fixed = TRUE)
+  expect_match(guide, "CTgene", fixed = TRUE)
+  expect_match(guide, case_anchor_cdr3, fixed = TRUE)
+  expect_match(guide, "raw binder call", fixed = TRUE)
+  expect_match(guide, "Share selection", fixed = TRUE)
+  expect_match(guide, "90 days", fixed = TRUE)
+  expect_match(
+    guide,
+    "demo_hla_tcr_main_case.linked-view.json",
+    fixed = TRUE
+  )
+  expect_match(guide, "hla_tcr_antigen_selected", fixed = TRUE)
+  expect_match(pkgdown, "hla_tcr_main_case", fixed = TRUE)
 })

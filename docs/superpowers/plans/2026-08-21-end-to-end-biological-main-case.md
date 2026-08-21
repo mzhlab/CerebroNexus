@@ -164,7 +164,7 @@ git commit -m "feat(viewer): add biological main case fixtures"
 - 创建：`vignettes/hla_tcr_main_case.Rmd`
 - 修改：`_pkgdown.yml`
 
-- [ ] **步骤 1：添加失败的文档发布测试**
+- [x] **步骤 1：添加失败的文档发布测试**
 
 ```r
 expect_true(file.exists(vignette_file))
@@ -177,23 +177,23 @@ expect_match(guide, "90 days", fixed = TRUE)
 expect_match(pkgdown, "hla_tcr_main_case", fixed = TRUE)
 ```
 
-- [ ] **步骤 2：运行测试验证失败**
+- [x] **步骤 2：运行测试验证失败**
 
 运行任务 1 的 focused test。预期：FAIL，因为 vignette 不存在且 pkgdown
 尚未列出它。
 
-- [ ] **步骤 3：写 walkthrough 并发布到 pkgdown**
+- [x] **步骤 3：写 walkthrough 并发布到 pkgdown**
 
 Vignette 必须包含：数据和主张边界、导入 portable JSON、Linked views 中
 的 293-cell selection、CTgene 与 CDR3 的差异、anchored motif、匿名分享、
 90 天到期后的 JSON 恢复。`_pkgdown.yml` 将 `hla_tcr_main_case` 放在
 `hla_tcr_antigen_selected` 后面。
 
-- [ ] **步骤 4：运行测试验证通过**
+- [x] **步骤 4：运行测试验证通过**
 
 运行 focused test，预期 0 failures。
 
-- [ ] **步骤 5：提交 walkthrough**
+- [x] **步骤 5：提交 walkthrough**
 
 ```bash
 git add tests/testthat/test-hla-tcr-main-case.R \

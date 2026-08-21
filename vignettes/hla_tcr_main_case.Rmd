@@ -1,0 +1,192 @@
+---
+title: "From an expanded TCR clone to a shareable cell selection"
+author: "Xuesong Wang"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    number_sections: true
+    self_contained: yes
+    mode: selfcontained
+vignette: >
+  %\VignetteIndexEntry{From an expanded TCR clone to a shareable cell selection}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```
+
+# The result first
+
+This walkthrough follows one measured T-cell population through the whole
+Viewer: a gene-defined expanded clone in Linked views, its sequence context in
+HLA & TCR Motifs, and an anonymous link that reopens the same 293 cells for a
+collaborator.
+
+The source is the bundled `HLA & TCR` data set: 12,000 real CD8 T cells from
+four donors, with transcriptomes, paired alpha/beta TCR contigs, raw dextramer
+binder calls, and independently published donor HLA genotypes. For the raw-data
+provenance, build pipeline, and source-specific caveats, read
+`vignette("hla_tcr_antigen_selected")` first.
+
+The case is versioned as two small files:
+
+```{r case-files}
+system.file(
+  "extdata/examples/demo_hla_tcr_main_case.linked-view.json",
+  package = "CerebroNexus"
+)
+system.file(
+  "extdata/examples/demo_hla_tcr_main_case.expectations.json",
+  package = "CerebroNexus"
+)
+```
+
+The first is a normal Linked views configuration that a user can import. The
+second is a machine-readable record of the expected counts and sequence family.
+
+# The biological question
+
+The deliberately narrow question is:
+
+> Can an expanded, gene-defined TCR clone be located in the transcriptomic
+> workspace, resolved into its TRB CDR3 sequence family, and shared as the same
+> cell population with another viewer?
+
+The selected clone uses the application's default `cloneCall = "gene"`
+contract. Its `CTgene` identity is:
+
+```text
+TRAV27.TRAJ42.TRAC_TRBV19.None.TRBJ2-7.TRBC2
+```
+
+It contains 293 cells: 142 from donor1 and 151 from donor2. All 293 have the
+raw `Flu-MP_Influenza` binder label, and the restricting allele named by that
+reagent is present in both donors' published genotypes.
+
+That observation is useful context, not proof of peptide specificity. A raw
+binder label records staining by a reagent. A raw binder call is reagent
+staining, not validated peptide specificity.
+
+# Open the fixed selection
+
+Launch the bundled Viewer from a source checkout:
+
+```bash
+Rscript -e 'pkgload::load_all("."); shiny::runApp("inst", port = 3838, launch.browser = TRUE)'
+```
+
+Then:
+
+1. Select the **HLA & TCR** data set.
+2. Open **Linked views**.
+3. Press **Share selection**.
+4. Under *Import or export a view*, press **Open JSON**.
+5. Choose
+   `inst/extdata/examples/demo_hla_tcr_main_case.linked-view.json`.
+
+The imported configuration selects exactly 293 cells, colours them by `sample`,
+opens the UMAP projection, and keeps the clonal layout in **Rank stack** mode.
+The selected clone is rank six by the application's gene-level clone definition.
+
+The portable JSON contains selected cell barcodes and view settings. It does not
+contain the expression matrix, projection coordinates, image pixels, or local
+paths; those remain in the matching `.crb` data set.
+
+# Read the clone at the right level
+
+The clonal panel and the motif network answer related but different questions:
+
+| Layer | Identity | What this case contains |
+|---|---|---|
+| Linked views clone | `CTgene`, the alpha/beta V/J/C gene combination | 293 cells |
+| Dominant sequence | TRB CDR3 amino-acid sequence | `CASSIRSSYEQYF` in 227 cells |
+| Sequence family | equal-length TRB CDR3 nodes joined at Hamming distance 1 | 34 nodes, 627 cells |
+
+The 293-cell CTgene clone contains ten distinct TRB CDR3 sequences. That is not
+an inconsistency: `CTgene` intentionally groups by receptor genes and is coarser
+than an exact amino-acid or nucleotide clonotype. Its dominant TRB sequence is
+`CASSIRSSYEQYF`, but the clone must not be renamed as if all 293 cells carried
+that exact sequence.
+
+In Linked views, compare the highlighted cells in the clone rank stack with
+their positions in UMAP. The coordinated highlight is descriptive: it shows
+where this selected receptor-defined population lies in the expression
+embedding; it does not by itself establish a transcriptional state or a
+differential-expression result.
+
+# Resolve the sequence family
+
+Open **HLA & TCR Motifs**, use the TRB chain and the all-cell network, and locate
+the anchor sequence `CASSIRSSYEQYF` in **Network data** or the feature picker.
+The anchored component has:
+
+- consensus `CASSxxxxxEQxF`;
+- 34 distinct TRB CDR3 nodes;
+- 627 cells in total;
+- 308 cells from donor1, 318 from donor2, and 1 from donor4.
+
+All ten TRB CDR3 sequences carried by the 293-cell CTgene clone belong to this
+same component. The result is a measured pattern of sequence convergence within
+this antigen-selected repertoire. The numeric motif label displayed by a given
+graph build is intentionally absent from the case contract: motif numbers are
+arbitrary, whereas the anchor and member sequences are stable identities.
+
+# What the case supports
+
+The evidence supports three statements:
+
+1. the CTgene-defined clone is expanded across donor1 and donor2;
+2. its ten TRB CDR3 sequences lie in one anchored Hamming-1 family;
+3. that family is observed across donors in this selected cohort.
+
+It does not establish any of the following:
+
+- `CTgene` as an exact sequence-defined clonotype;
+- peptide specificity from the raw dextramer binder label;
+- HLA restriction from motif co-occurrence;
+- a population-level HLA association from four antigen-selected donors;
+- an unbiased estimate of repertoire frequency.
+
+# Share the same cells
+
+Return to **Linked views** with the imported selection still active:
+
+1. press **Share selection**;
+2. press **Create share link**;
+3. copy the resulting URL;
+4. open it in a private window or a browser with no Viewer login session.
+
+The receiving Viewer should load the matching `HLA & TCR` population and restore
+the same 293 selected cells and view settings. Creating and opening a selection
+link does not require a login; authentication is reserved for administering
+existing links.
+
+A live share record expires after 90 days. The durable scientific object is
+therefore the checked-in `demo_hla_tcr_main_case.linked-view.json`, not a URL in
+documentation. After a link expires, import that JSON and create a fresh link.
+
+# Rebuild and verify the case
+
+The two JSON files are derived from the shipped `.crb`, not edited by hand:
+
+```bash
+Rscript data-raw/build_hla_tcr_main_case.R
+```
+
+The generator stops if the target CTgene clone, donor counts, dominant CDR3,
+motif membership, or configuration fingerprint drifts. The corresponding test
+independently reconstructs the selection and motif graph:
+
+```bash
+Rscript -e 'pkgload::load_all(".", quiet = TRUE); testthat::test_file("tests/testthat/test-hla-tcr-main-case.R", reporter = "summary")'
+```
+
+That pair provides both sides of a reproducible case: a human walkthrough and a
+machine-checked biological contract.
