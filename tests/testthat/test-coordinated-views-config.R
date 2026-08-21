@@ -561,7 +561,8 @@ test_that("Save and share markup is accessible and bundled in every Viewer", {
 
   expect_match(ui, 'id = "cv-config-open"', fixed = TRUE)
   expect_match(ui, 'icon("share-alt")', fixed = TRUE)
-  expect_match(ui, 'tags$span("Share views")', fixed = TRUE)
+  expect_match(ui, 'tags$span("Share selection")', fixed = TRUE)
+  expect_false(grepl('tags$span("Share views")', ui, fixed = TRUE))
   expect_match(
     ui,
     'title = "Save, open, import, export, or share a linked view"',
