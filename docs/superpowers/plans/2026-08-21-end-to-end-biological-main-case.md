@@ -231,3 +231,56 @@ git status --short --branch
 ```
 
 预期：无格式错误；只有计划进度记录可能尚未提交。
+
+### 交付后质量审查（2026-08-21）
+
+本轮没有修改生物学选择或生产代码。审查重点是区分三层证据：
+
+1. 生成器和 manifest 证明 293-cell `CTgene` 选择及 34-node motif
+   可以从 shipped `.crb` 确定性重建；
+2. 配置契约测试证明 JSON 通过 schema、fingerprint 和条形码校验；
+3. 真实浏览器测试证明签入 JSON 确实能被 Viewer 上传并恢复为可交互状态。
+
+第三层原先只由人工 walkthrough 描述，没有对应主案例回归。为避免把“能解码”
+误当作“真实 Viewer 能导入”，新增：
+
+```text
+tests/testthat/test-hla-tcr-main-case-browser.R
+```
+
+该测试在完整 Viewer 中切换到 `HLA & TCR` 数据集，上传标准 JSON，并断言：
+
+- 状态明确报告恢复 293 个细胞；
+- colour mode 为 `sample`；
+- projection 为 `umap`；
+- clone layout 为 `stack`；
+- selection source 为 `Clonal expansion (TCR)`；
+- 首尾条形码与确定性产物一致。
+
+本轮重新执行的验证：
+
+```bash
+Rscript data-raw/build_hla_tcr_main_case.R
+git diff --exit-code -- \
+  inst/extdata/examples/demo_hla_tcr_main_case.expectations.json \
+  inst/extdata/examples/demo_hla_tcr_main_case.linked-view.json
+
+Rscript -e 'pkgload::load_all(".", quiet = TRUE); \
+  testthat::test_file("tests/testthat/test-hla-tcr-main-case.R", reporter = "summary"); \
+  testthat::test_file("tests/testthat/test-coordinated-views-config.R", reporter = "summary"); \
+  testthat::test_file("tests/testthat/test-hla-app-contract.R", reporter = "summary")'
+
+Rscript -e 'pkgload::load_all(".", quiet = TRUE); \
+  testthat::test_file("tests/testthat/test-coordinated-views-config-browser.R", reporter = "summary")'
+
+Rscript -e 'pkgload::load_all(".", quiet = TRUE); \
+  testthat::test_file("tests/testthat/test-hla-tcr-main-case-browser.R", reporter = "summary")'
+```
+
+结果：产物无漂移；三组数据/配置/HLA 测试与公开分享浏览器契约均为
+0 failures；vignette 在全新临时目录中成功渲染为 917 KB HTML。真实主案例
+验收读取到 293 cells、`sample`、`umap`、`stack` 和预期首尾条形码。
+
+设计取舍：不把一个 90 天后过期的 live token 签入仓库。主案例以持久 JSON
+为科学对象；公开链接的创建/持久化由独立真实浏览器分享契约覆盖，主案例浏览器
+测试只负责证明这份特定 JSON 在完整 HLA/TCR Viewer 中可恢复。
