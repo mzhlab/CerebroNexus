@@ -24,7 +24,10 @@ builder_release_runtime_files <- function() {
     stop("The release runtime is unavailable.", call. = FALSE)
   }
   root <- normalizePath(roots[usable][[1L]], winslash = "/", mustWork = TRUE)
-  c(list(root = root), as.list(file.path(root, required)))
+  c(
+    list(root = root),
+    as.list(stats::setNames(file.path(root, required), names(required)))
+  )
 }
 ##----------------------------------------------------------------------------##
 
