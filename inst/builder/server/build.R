@@ -667,7 +667,8 @@ start_builder_build_output_preflight <- function(path) {
       foreign = character(),
       prior_state = list(
         schema_version = 1L,
-        identity = list(schema_version = 1L, exists = TRUE, entries = list())
+        identity = list(schema_version = 1L, exists = TRUE, entries = list()),
+        record = NULL
       )
     )))
   }
