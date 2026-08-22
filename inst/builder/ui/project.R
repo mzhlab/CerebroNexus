@@ -6,12 +6,12 @@ builder_project_toolbar_ui <- function() {
     uiOutput("project_status", inline = TRUE),
     actionButton(
       "open_builder_project",
-      "Open project…",
+      tagList(shiny::icon("folder-open"), span("Open")),
       class = "btn builder-project-action"
     ),
     actionButton(
       "save_builder_project",
-      "Save project",
+      tagList(shiny::icon("floppy-disk"), span("Save")),
       class = "btn builder-project-action"
     )
   )
@@ -267,7 +267,7 @@ builder_project_artifact_workbench_ui <- function(entry, root = NULL) {
     class = "builder-stage builder-stage-shell builder-project-artifact-stage",
     `data-workflow-stage` = "configure",
     builder_stage_header_ui(
-      "Data setup",
+      "Configure",
       entry$settings$name %||% entry$id,
       "This dataset is represented by a checked CRB and is not loaded into memory."
     ),

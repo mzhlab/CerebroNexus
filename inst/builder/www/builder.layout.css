@@ -2,16 +2,24 @@
 
 .topbar {
   background: var(--c-surface);
-  border-bottom: 1px solid var(--c-border);
-  padding: .8rem 1.5rem;
+  border: 1px solid var(--c-border);
+  border-bottom: 0;
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  padding: 1rem 1.25rem;
   display: flex;
   align-items: center;
   gap: 1rem;
   flex-wrap: wrap;
   position: sticky;
-  top: 0;
+  top: var(--space-3);
   z-index: 30;
+  width: calc(100% - 2 * var(--builder-page-gutter));
+  max-width: 96rem;
+  margin: var(--space-3) auto 0;
 }
+.builder-project-brand { display: flex; min-width: 0; align-items: center; gap: .8rem; }
+.builder-project-brand-copy { display: grid; min-width: 0; gap: .08rem; }
+.builder-project-brand-copy > span { color: var(--c-text-muted); font-size: .78rem; }
 .topbar .wordmark { display: flex; align-items: center; gap: .7rem; }
 .topbar .wordmark svg { height: 17px; width: auto; display: block; }
 .topbar .divider {
@@ -32,17 +40,39 @@
   margin-left: auto;
 }
 
+#workflow_progress {
+  position: sticky;
+  top: calc(var(--space-3) + var(--builder-topbar-height));
+  z-index: 20;
+  display: block;
+  width: calc(100% - 2 * var(--builder-page-gutter));
+  max-width: 96rem;
+  margin: 0 auto;
+}
+#workflow_progress .builder-workflow-progress {
+  padding: 0 var(--space-5);
+  border: 1px solid var(--c-border);
+  background: var(--c-surface-2);
+}
+
 .shell,
 .builder-shell {
   display: grid;
   grid-template-columns: var(--builder-rail-width) minmax(0, 1fr);
-  gap: var(--builder-shell-gap);
-  width: 100%;
-  max-width: none;
-  margin: 0;
-  padding: var(--space-6) var(--builder-page-gutter);
-  align-items: start;
+  gap: 0;
+  width: calc(100% - 2 * var(--builder-page-gutter));
+  max-width: 96rem;
+  min-height: calc(100vh - 12rem);
+  margin: 0 auto var(--space-8);
+  padding: 0;
+  align-items: stretch;
   position: relative;
+  border: 1px solid var(--c-border);
+  border-top: 0;
+  border-radius: 0 0 var(--r-lg) var(--r-lg);
+  background: var(--c-surface);
+  box-shadow: var(--shadow-1);
+  overflow: clip;
 }
 /* Grid items refuse to shrink below their content by default, so one long
    path in a <pre> would push the whole column past the viewport. */
@@ -61,32 +91,17 @@
   width: 100%;
   max-width: 100%;
 }
-#builder-workspace { padding-bottom: var(--space-8); }
-#builder-workspace #pane { order: 2; }
-#builder-workspace #workflow_progress {
-  position: sticky;
-  top: var(--builder-topbar-height);
-  z-index: 10;
-  order: 1;
-  align-self: stretch;
-}
-#builder-workspace .builder-workflow-progress {
-  padding: var(--space-2);
-  border: 1px solid var(--c-border);
-  border-radius: var(--r-md);
-  background: rgb(255 255 255 / .96);
-  box-shadow: var(--shadow-1);
-}
-#builder-workspace .builder-workflow-progress ol {
+#builder-workspace { padding: 0; }
+#workflow_progress .builder-workflow-progress ol {
   width: 100%;
   max-width: none;
   margin: 0;
 }
-#builder-workspace .builder-workflow-progress li {
+#workflow_progress .builder-workflow-progress li {
   font-size: clamp(.82rem, .35vw + .76rem, .92rem);
   font-weight: 500;
 }
-#builder-workspace .builder-workflow-progress li[aria-current="step"] {
+#workflow_progress .builder-workflow-progress li[aria-current="step"] {
   color: var(--builder-action);
   font-weight: 600;
 }
@@ -96,9 +111,9 @@
 @media (min-width: 58.0625rem) {
   .shell .rail,
   .builder-shell .rail {
-    align-self: start;
-    position: sticky;
-    top: 4.2rem;
+    align-self: stretch;
+    position: relative;
+    top: auto;
     overflow: visible;
     overscroll-behavior: contain;
   }
@@ -113,10 +128,10 @@
 #workbench > * { min-width: 0; }
 .builder-stage {
   background: var(--c-surface);
-  border: 1px solid var(--c-border);
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow-1);
-  padding: var(--builder-stage-padding);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: clamp(1.5rem, 3vw, 2.75rem);
   height: auto;
   align-self: start;
   overflow-wrap: anywhere;
@@ -127,8 +142,8 @@
 .builder-stage ul { max-width: 100%; padding-left: 1.35rem; }
 .builder-stage li { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
 .builder-stage[aria-current="stage"] {
-  border-color: var(--c-amber-300);
-  box-shadow: var(--shadow-2);
+  border-color: transparent;
+  box-shadow: none;
 }
 .builder-stage > h2 { margin-top: 0; }
 
@@ -180,13 +195,14 @@
 
 .rail {
   z-index: 3;
-  background: var(--c-surface);
-  border: 1px solid var(--c-border);
-  border-radius: var(--r-lg);
+  background: var(--c-surface-2);
+  border: 0;
+  border-right: 1px solid var(--c-border);
+  border-radius: 0;
   overflow: visible;
-  position: sticky;
-  top: 4.2rem;
-  box-shadow: var(--shadow-1);
+  position: relative;
+  top: auto;
+  box-shadow: none;
 }
 .ds--ready:has(.ds-ready-stamp.needs-review) .ds-pick { padding-right: 2.5rem; }
 .rail-head {
@@ -366,18 +382,14 @@
     --builder-rail-width: 15.5rem;
     --builder-shell-gap: var(--space-4);
   }
-  .shell,
-  .builder-shell {
-    padding-inline: var(--space-6);
-  }
 }
 
 @media (max-width: 58rem) {
   .shell,
   .builder-shell {
     grid-template-columns: minmax(0, 1fr);
-    gap: var(--builder-section-gap);
-    padding-inline: var(--builder-page-gutter);
+    gap: 0;
+    padding: 0;
   }
   .rail-summary { display: flex; }
   .rail-manager-backdrop.is-open {
@@ -405,6 +417,9 @@
     width: auto;
     max-height: none;
     overflow-y: auto;
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-3);
   }
   .rail.is-manager-open {
     display: flex;
@@ -448,7 +463,7 @@
   .builder-project-toolbar .builder-project-status { margin-right: auto; }
   .topbar .formats { width: 100%; order: 4; }
   .shell,
-  .builder-shell { padding-block: var(--space-4); }
+  .builder-shell { padding-block: 0; }
   .ds-move,
   .ds-del,
   .rail-manager-close {

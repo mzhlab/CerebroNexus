@@ -348,14 +348,15 @@ ui <- tagList(
     tags$title("Cerebro Dataset Builder")
   ),
   div(
-    class = "topbar",
-    div(class = "wordmark", cerebro_wordmark),
-    div(class = "divider"),
-    h1("Dataset Builder"),
-    span(
-      class = "hint",
-      style = "font-size:.82rem;margin:0",
-      "Turn Seurat objects into a ready-to-run visual app"
+    class = "topbar builder-project-header",
+    div(
+      class = "builder-project-brand",
+      div(class = "wordmark", cerebro_wordmark),
+      div(
+        class = "builder-project-brand-copy",
+        h1("Dataset Builder"),
+        span("Guided project workspace")
+      )
     ),
     uiOutput("busy", inline = TRUE),
     builder_project_toolbar_ui()
@@ -378,6 +379,7 @@ ui <- tagList(
       )
     )
   ),
+  uiOutput("workflow_progress"),
   div(
     class = "shell builder-shell",
     div(
@@ -462,8 +464,7 @@ ui <- tagList(
           tabindex = "-1",
           builder_empty_workbench_ui()
         )
-      ),
-      uiOutput("workflow_progress")
+      )
     ),
   ),
   div(

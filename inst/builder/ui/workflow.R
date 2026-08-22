@@ -26,7 +26,13 @@ builder_workflow_progress_ui <- function(
   ) {
     stop("Valid Builder workflow availability is required.", call. = FALSE)
   }
-  labels <- c("Upload", "Data setup", "Review", "Build")
+  labels <- c("Data", "Configure", "Review", "Build")
+  descriptions <- c(
+    "Add datasets",
+    "Set each dataset",
+    "Resolve issues",
+    "Create output"
+  )
   current_index <- match(stage, stages)
   tags$nav(
     class = "builder-workflow-progress",
@@ -37,12 +43,23 @@ builder_workflow_progress_ui <- function(
       current <- identical(stage, stage_id)
       complete <- index < current_index
       enabled <- isTRUE(available[[stage_id]]) && !isTRUE(locked)
+      step_label <- tagList(
+        tags$span(
+          class = "builder-workflow-step-number",
+          if (complete) "✓" else index
+        ),
+        tags$span(
+          class = "builder-workflow-step-copy",
+          tags$strong(labels[[index]]),
+          tags$small(descriptions[[index]])
+        )
+      )
       label <- if (current) {
-        tags$span(labels[[index]])
+        tags$span(step_label)
       } else if (enabled) {
         actionLink(
           paste0("workflow_stage_", stage_id),
-          labels[[index]],
+          step_label,
           class = "builder-workflow-stage-link",
           `aria-label` = if (complete) {
             paste(labels[[index]], "completed")
@@ -58,7 +75,7 @@ builder_workflow_progress_ui <- function(
           } else {
             labels[[index]]
           },
-          labels[[index]]
+          step_label
         )
       }
       tags$li(
@@ -80,9 +97,15 @@ builder_workflow_progress_ui <- function(
 }
 
 builder_stage_header_ui <- function(stage, title, intro) {
+  step <- match(stage, c("Data", "Configure", "Review", "Build"))
+  eyebrow <- if (length(step) && !is.na(step)) {
+    paste("Step", step, "of 4")
+  } else {
+    stage
+  }
   tags$header(
     class = "builder-stage-header",
-    tags$p(class = "builder-stage-eyebrow", stage),
+    tags$p(class = "builder-stage-eyebrow", eyebrow),
     tags$h2(title),
     tags$p(class = "stage-intro", intro)
   )
@@ -246,8 +269,8 @@ builder_build_workbench_ui <- function(model) {
     `data-workflow-stage` = "build",
     builder_stage_header_ui(
       "Build",
-      "Build outputs",
-      "Build the frozen plan you reviewed and confirmed."
+      "Build your output",
+      "Packaging starts only after Build is clicked."
     ),
     builder_stage_summary_ui(
       class = "builder-build-summary",

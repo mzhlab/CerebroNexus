@@ -874,9 +874,9 @@ render_configure_workbench <- function() {
     class = "builder-stage builder-stage-shell builder-stage-configure",
     `data-workflow-stage` = "configure",
     builder_stage_header_ui(
-      "Data setup",
-      "Choose data to include",
-      "Define the content saved to each CRB file."
+      "Configure",
+      "Configure this dataset",
+      "Only relevant settings are shown."
     ),
     uiOutput("inspect_stage"),
     builder_core_stage_ui("core", core_model),

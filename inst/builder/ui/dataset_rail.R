@@ -520,6 +520,15 @@ builder_empty_workbench_ui <- function(project_active = FALSE) {
   shiny::tags$section(
     class = "builder-stage builder-empty-state",
     `aria-labelledby` = "builder-empty-title",
+    shiny::tags$header(
+      class = "builder-stage-header builder-empty-header",
+      shiny::tags$p(class = "builder-stage-eyebrow", "Step 1 of 4"),
+      shiny::h2(id = "builder-empty-title", "Add your data"),
+      shiny::p(
+        class = "stage-intro",
+        "Start with one dataset. Add more whenever you need them."
+      )
+    ),
     shiny::tags$div(
       class = "builder-dataset-dropzone",
       role = "button",
@@ -531,15 +540,20 @@ builder_empty_workbench_ui <- function(project_active = FALSE) {
         `aria-hidden` = "true",
         shiny::icon("cloud-upload")
       ),
-      shiny::h2(id = "builder-empty-title", "Drop datasets here"),
+      shiny::h3("Drop a dataset here"),
       shiny::p(
         id = "builder-empty-description",
-        "or click to choose multiple files"
+        "Seurat, SingleCellExperiment, AnnData and supported Builder bundles."
       ),
       shiny::p(
         id = "builder-empty-formats",
         class = "builder-dataset-dropzone-formats",
-        "Seurat .rds and compatible .qs / .qs2 files"
+        "Large files load in the background."
+      ),
+      shiny::tags$span(
+        class = "btn btn-primary builder-dropzone-action",
+        shiny::icon("file-arrow-up"),
+        "Choose files"
       )
     ),
     if (isTRUE(project_active)) {

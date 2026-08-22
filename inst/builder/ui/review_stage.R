@@ -160,7 +160,7 @@ builder_review_confirmation_ui <- function() {
     "CRB plan ready",
     actionButton(
       "back_to_settings",
-      "Back to Data setup",
+      "Back to Configure",
       class = "btn"
     ),
     actionButton(
@@ -625,8 +625,8 @@ builder_review_stage_ui <- function(id, model, footer = NULL) {
     class = "builder-stage builder-stage-shell builder-stage-review",
     builder_stage_header_ui(
       "Review",
-      "Review the CRB plan",
-      "Check the CRB data plan before choosing build outputs."
+      "Review before building",
+      "Resolve blocking issues, then confirm the output summary."
     ),
     builder_stage_summary_ui(
       class = "review-summary-strip",

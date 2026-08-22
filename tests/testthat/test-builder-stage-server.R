@@ -96,6 +96,10 @@ test_that("Builder shell and workflow UI separate all four stages", {
     0L
   )
   expect_match(shell, 'uiOutput("workflow_progress")', fixed = TRUE)
+  expect_match(shell, 'class = "topbar builder-project-header"', fixed = TRUE)
+  expect_match(shell, 'class = "builder-project-brand"', fixed = TRUE)
+  expect_match(shell, 'class = "shell builder-shell"', fixed = TRUE)
+  expect_match(shell, 'id = "builder-workspace"', fixed = TRUE)
   expect_match(shell, 'file.path("ui", "workflow.R")', fixed = TRUE)
   expect_match(shell, '"server/workflow.R"', fixed = TRUE)
   expect_match(shell, "Build your first Viewer in four steps", fixed = TRUE)
@@ -116,12 +120,12 @@ test_that("Builder shell and workflow UI separate all four stages", {
   expect_match(progress_html, 'aria-label="Builder progress"', fixed = TRUE)
   expect_match(progress_html, 'aria-current="step"', fixed = TRUE)
   expect_match(progress_html, 'data-workflow-confirmed="false"', fixed = TRUE)
-  expect_match(progress_html, "Data setup", fixed = TRUE)
-  expect_false(grepl(">Configure<", progress_html, fixed = TRUE))
+  expect_match(progress_html, "Configure", fixed = TRUE)
   expect_match(progress_html, 'id="workflow_stage_upload"', fixed = TRUE)
   expect_match(progress_html, 'aria-disabled="true"', fixed = TRUE)
   expect_match(progress_html, "is-unavailable", fixed = TRUE)
-  expect_false(grepl("✓|✔|checkmark", progress_html, ignore.case = TRUE))
+  expect_match(progress_html, "builder-workflow-step-number", fixed = TRUE)
+  expect_match(progress_html, "Set each dataset", fixed = TRUE)
   confirmed_progress <- htmltools::renderTags(
     app_env$builder_workflow_progress_ui(
       "build",
@@ -219,7 +223,7 @@ test_that("Builder shell and workflow UI separate all four stages", {
     "Continue to Build",
     fixed = TRUE
   )
-  expect_match(confirmation_html, "Back to Data setup", fixed = TRUE)
+  expect_match(confirmation_html, "Back to Configure", fixed = TRUE)
   expect_false(grepl("Ready to continue?", confirmation_html, fixed = TRUE))
   expect_false(grepl("<input|<select|<textarea", confirmation_html))
 })
@@ -260,7 +264,7 @@ test_that("shared stage layout primitives expose one visual grammar", {
   sys.source("app.R", envir = app_env)
 
   header <- app_env$builder_stage_header_ui(
-    "Data setup",
+    "Configure",
     "Choose data to include",
     "Define the content saved to each CRB file."
   )
@@ -537,7 +541,7 @@ test_that("workflow server owns loading and Configure rendering", {
     expect_identical(workflow()$stage, "upload")
     expect_match(
       paste(unlist(output$workflow_progress), collapse = " "),
-      "Upload",
+      "Data",
       fixed = TRUE
     )
 

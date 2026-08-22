@@ -90,6 +90,16 @@ builder_rail_source("state.R")
 builder_rail_source("extras.R")
 builder_rail_source(file.path("ui", "dataset_rail.R"))
 
+test_that("the empty workspace presents the first guided step", {
+  html <- htmltools::renderTags(builder_empty_workbench_ui())$html
+
+  expect_match(html, "Step 1 of 4", fixed = TRUE)
+  expect_match(html, "Add your data", fixed = TRUE)
+  expect_match(html, "Drop a dataset here", fixed = TRUE)
+  expect_match(html, "Large files load in the background", fixed = TRUE)
+  expect_match(html, "Choose files", fixed = TRUE)
+})
+
 
 test_that("the Builder launcher bounds uploads without leaking process options", {
   launcher_path <- testthat::test_path(
