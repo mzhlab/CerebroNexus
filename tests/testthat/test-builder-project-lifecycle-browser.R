@@ -242,7 +242,7 @@ test_that("Check Save and Prepare CRB transitions stay isolated across datasets"
     paste0(
       "document.getElementById('complete_dataset_check') !== null && ",
       "document.getElementById('complete_dataset_check').disabled === false && ",
-      "document.getElementById('complete_dataset_check').textContent.includes('Done')"
+      "document.getElementById('complete_dataset_check').textContent.includes('Finish checking')"
     ),
     timeout = 30000
   )

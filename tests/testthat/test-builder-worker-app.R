@@ -934,7 +934,7 @@ test_that("Build stage renders only the confirmed stored plan", {
   expect_match(workflow_server, 'list(type = "back_to_review")', fixed = TRUE)
   expect_match(workflow_ui, '`data-workflow-stage` = "build"', fixed = TRUE)
   expect_match(workflow_ui, 'builder_stage_header_ui(', fixed = TRUE)
-  expect_match(workflow_ui, '"Build outputs"', fixed = TRUE)
+  expect_match(workflow_ui, '"Build your output"', fixed = TRUE)
   expect_match(
     paste(workflow_ui_lines, collapse = "\n"),
     '"No output folder selected"',

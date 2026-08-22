@@ -140,7 +140,7 @@ test_that("Review presents the frozen CRB data plan", {
 
   expect_match(
     html,
-    "Check the CRB data plan before choosing build outputs.",
+    "Resolve blocking issues, then confirm the output summary.",
     fixed = TRUE
   )
   expect_match(html, "2 datasets", fixed = TRUE)
@@ -251,7 +251,7 @@ test_that("Review has one global confirmation and no editable controls", {
     1L
   )
   expect_length(
-    regmatches(html, gregexpr("Back to Data setup", html, fixed = TRUE))[[1L]],
+    regmatches(html, gregexpr("Back to Configure", html, fixed = TRUE))[[1L]],
     1L
   )
   expect_match(html, "builder-stage-shell", fixed = TRUE)
