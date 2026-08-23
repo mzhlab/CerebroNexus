@@ -148,6 +148,8 @@ builder_project_lifecycle_prepare_crb <- function(
     paste0(
       "(function(){var title=document.getElementById(",
       "'builder-operation-overlay-title');return !!(title && (",
+      "title.textContent.trim() === 'Saving dataset sources' || ",
+      "title.textContent.trim() === 'Project saved' || ",
       "title.textContent.trim() === 'Preparing reusable CRBs' || ",
       "title.textContent.trim() === 'Project and CRBs saved'));})()"
     ),
