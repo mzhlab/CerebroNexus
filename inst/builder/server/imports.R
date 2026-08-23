@@ -1094,7 +1094,16 @@ fail_spatial_preview <- function(payload) {
 }
 
 builder_release_package_runtime <- function(builder_root) {
-  source_root <- .builder_worker_package_source(builder_root)
+  source_root <- normalizePath(
+    file.path(builder_root, "..", ".."),
+    winslash = "/",
+    mustWork = FALSE
+  )
+  source_checkout <- file.exists(file.path(source_root, "DESCRIPTION")) &&
+    dir.exists(file.path(source_root, "R"))
+  if (!source_checkout) {
+    source_root <- .builder_worker_package_source(builder_root)
+  }
   if (is.null(source_root)) {
     return(list(source_root = NULL, files = character()))
   }
