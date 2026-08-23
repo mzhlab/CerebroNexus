@@ -358,9 +358,11 @@ generated_app_e2e_wait_plotly <- function(id, timeout = 60000) {
       paste0(
         "(function(){var plot=document.getElementById(",
         id_js,
-        ");return !!(plot && ((plot.data && plot.data.some(function(trace){",
+        ");var canvas=plot&&plot.querySelector('canvas.cerebro-projection-canvas');",
+        "return !!(plot && ((plot.data && plot.data.some(function(trace){",
         "return trace.x && trace.x.length>0;})) || ",
-        "Number(plot.dataset.pointCount)>0));})()"
+        "Number(plot.dataset.pointCount)>0 || ",
+        "(canvas && canvas.width>0 && canvas.height>0)));})()"
       ),
       timeout = timeout
     ),

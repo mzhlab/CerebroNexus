@@ -43,7 +43,7 @@ test_that("the Data page presents the real dataset inputs", {
   expect_match(rail, 'id = "choose_local_datasets"', fixed = TRUE)
   expect_match(rail, 'class = "builder-data-sources"', fixed = TRUE)
   expect_match(rail, "builder-upload-transport", fixed = TRUE)
-  expect_match(rail, "builder-file-trigger", fixed = TRUE)
+  expect_match(rail, "dataset-file-button", fixed = TRUE)
   expect_match(
     rail,
     '"Use files already on the Builder computer"',
@@ -97,6 +97,35 @@ builder_rail_source("extras.R")
 builder_rail_source(file.path("ui", "dataset_rail.R"))
 
 test_that("the empty workspace presents the first guided step", {
+  had_examples <- exists(
+    "builder_example_buttons_ui",
+    envir = globalenv(),
+    inherits = FALSE
+  )
+  old_examples <- if (had_examples) {
+    get("builder_example_buttons_ui", envir = globalenv())
+  } else {
+    NULL
+  }
+  assign(
+    "builder_example_buttons_ui",
+    function(...) shiny::tagList(),
+    envir = globalenv()
+  )
+  on.exit(
+    {
+      if (had_examples) {
+        assign(
+          "builder_example_buttons_ui",
+          old_examples,
+          envir = globalenv()
+        )
+      } else {
+        rm("builder_example_buttons_ui", envir = globalenv())
+      }
+    },
+    add = TRUE
+  )
   html <- htmltools::renderTags(builder_empty_workbench_ui())$html
 
   expect_match(html, "Step 1 of 4", fixed = TRUE)

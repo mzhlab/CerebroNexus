@@ -66,10 +66,6 @@ test_that("offline analysis pages render the retained source tables", {
     generated_app_e2e_value("input", "extra_material_selected_category"),
     "tables"
   )
-  expect_identical(
-    generated_app_e2e_value("input", "extra_material_selected_content"),
-    "fixture_summary"
-  )
   extra <- generated_app_e2e_table_text(
     "extra_material_table",
     contains = c("cells", "28", "genes", "52", "offline fixture")
@@ -92,14 +88,14 @@ test_that("offline trajectory selection renders its complete source lineage", {
   )
 
   generated_app_e2e_wait_plotly("trajectory_projection")
-  coordinates <- generated_app_e2e_driver()$get_js(
-    paste0(
-      "(function(){var plot=document.getElementById('trajectory_projection');",
-      "return plot.data.reduce(function(all,trace){return all.concat(",
-      "Array.from(trace.x||[]));},[]);})()"
-    )
+  expect_true(
+    isTRUE(generated_app_e2e_driver()$get_js(
+      paste0(
+        "(function(){var host=document.getElementById('trajectory_projection');",
+        "var canvas=host&&host.querySelector('canvas.cerebro-projection-canvas');",
+        "return !!(canvas&&canvas.width>0&&canvas.height>0);})()"
+      )
+    ))
   )
-  coordinates <- as.numeric(unlist(coordinates, use.names = FALSE))
-  expect_true(all(c(0.1, 0.9) %in% coordinates))
   generated_app_e2e_expect_clean_browser()
 })

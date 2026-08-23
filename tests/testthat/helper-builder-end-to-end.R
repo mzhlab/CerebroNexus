@@ -402,9 +402,9 @@ builder_e2e_run_generated_app <- function(
         paste0(
           "(function() {",
           "var plot = document.getElementById('expression_projection');",
-          "return !!(plot && plot.data && plot.data.some(function(trace) {",
-          "return trace.x && trace.x.length > 0;",
-          "}));",
+          "var canvas = plot && plot.querySelector('canvas.cerebro-projection-canvas');",
+          "return !!(canvas && canvas.width > 0 && canvas.height > 0 &&",
+          "Number(plot.dataset.pointCount) > 0);",
           "})()"
         ),
         timeout = 60000

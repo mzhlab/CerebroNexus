@@ -156,7 +156,10 @@ test_that("BuildPlan freezes the complete Viewer-content selection", {
   expect_identical(item$colors$sample[["two"]], "#AA5500")
   expect_identical(
     plan$app_options$point_size,
-    list(overview_projection_point_size = 8)
+    list(
+      overview_projection_point_size = 8,
+      projection_point_opacity = 1
+    )
   )
 })
 
@@ -242,7 +245,10 @@ test_that("an explicit legacy App point-size option still wins", {
   expect_null(plan$error)
   expect_identical(
     plan$app_options$point_size,
-    list(overview_projection_point_size = 6)
+    list(
+      overview_projection_point_size = 6,
+      projection_point_opacity = 1
+    )
   )
 })
 
@@ -270,7 +276,10 @@ test_that("normal Review options keep the dataset point-size default", {
   expect_null(plan$error)
   expect_identical(
     plan$app_options$point_size,
-    list(overview_projection_point_size = 8)
+    list(
+      overview_projection_point_size = 8,
+      projection_point_opacity = 1
+    )
   )
 })
 
