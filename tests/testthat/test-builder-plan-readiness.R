@@ -13,7 +13,10 @@ test_that("rail Review and BuildPlan share manifest readiness", {
     )
     expect_identical(
       defaults$app_options$point_size,
-      list(overview_projection_point_size = 5)
+      list(
+        overview_projection_point_size = 5,
+        projection_point_opacity = NULL
+      )
     )
     expect_identical(defaults$app_options$variable_to_compare, FALSE)
 
@@ -531,7 +534,10 @@ test_that("Review App options are typed, range checked, and frozen", {
       initial_dataset = "dataset-a",
       initial_page = "data_info",
       welcome_message = "Welcome, team!",
-      point_size = list(overview_projection_point_size = 6),
+      point_size = list(
+        overview_projection_point_size = 6,
+        projection_point_opacity = 0.8
+      ),
       variable_to_compare = FALSE,
       host = "0.0.0.0",
       port = 4242L,

@@ -336,10 +336,8 @@ test_that("Core keeps accessible group colors inside the Groups workspace", {
   core <- builder_stage_html(builder_core_stage_ui("core", model))
   html <- builder_stage_html(builder_group_colors_ui("core", colors))
 
-  expect_lt(
-    regexpr("core-group_detail", core, fixed = TRUE)[[1L]],
-    regexpr("core-projection_gallery", core, fixed = TRUE)[[1L]]
-  )
+  expect_match(core, "core-groups", fixed = TRUE)
+  expect_false(grepl("core-projection_gallery", core, fixed = TRUE))
   expect_match(html, "Group colors", fixed = TRUE)
   expect_match(html, "Coloring by:", fixed = TRUE)
   expect_match(html, "cluster", fixed = TRUE)
