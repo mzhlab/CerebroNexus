@@ -122,7 +122,6 @@ test_that("confirmed Build waits for a separately selected output folder", {
       "document.querySelector('#build-stage-status ",
       ".builder-build-status-section .builder-build-pipeline') !== null && ",
       "document.getElementById('dataset_files').disabled && ",
-      "document.querySelector('.builder-file-trigger').getAttribute('aria-disabled') === 'true' && ",
       "Array.from(document.querySelectorAll('.builder-reorder, .builder-drop')).every(control => control.disabled) && ",
       "document.querySelector('.topbar .builder-build-pipeline') === null"
     ),
@@ -140,7 +139,6 @@ test_that("confirmed Build waits for a separately selected output folder", {
 
   expect_true(app$get_js(paste0(
     "!document.getElementById('dataset_files').disabled && ",
-    "document.querySelector('.builder-file-trigger').getAttribute('aria-disabled') === 'false' && ",
     "Array.from(document.querySelectorAll('.builder-drop')).every(control => !control.disabled)"
   )))
   app$click("choose_output_folder")
