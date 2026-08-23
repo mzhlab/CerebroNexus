@@ -144,6 +144,7 @@ builder_project_lifecycle_prepare_crb <- function(
   timeout = 120000
 ) {
   before <- builder_project_lifecycle_manifest(project_dir)
+  builder_browser_wait_for_worker_ready(app, timeout = timeout)
   app$wait_for_js(
     paste0(
       "(function(){var title=document.getElementById(",
