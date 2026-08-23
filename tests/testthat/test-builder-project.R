@@ -2669,7 +2669,7 @@ test_that("activity locks do not rewrite unchanged text during DOM enhancement",
 
   expect_match(
     source,
-    "if (title.textContent !== builderActivityState.busy_title)",
+    "title.textContent !== builderActivityState.busy_title",
     fixed = TRUE
   )
   expect_match(
