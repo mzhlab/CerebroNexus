@@ -134,9 +134,6 @@
    desktop it gets its own scrollport; the workspace keeps the document
    scrollport so long forms and result cards always remain reachable. */
 @media (min-width: 58.0625rem) {
-  .builder-shell {
-    transition: grid-template-columns 1000ms var(--ease-standard);
-  }
   .builder-shell:not(:has(.rail .ds)) {
     grid-template-columns: 0 minmax(0, 1fr);
   }
