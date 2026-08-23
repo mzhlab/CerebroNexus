@@ -606,7 +606,27 @@ builder_plan_requires_app <- function(entries) {
       !is.list(point_size) ||
         is.object(point_size) ||
         is.null(point_names) ||
-        !identical(point_names, "overview_projection_point_size")
+        !length(point_names) ||
+        !identical(point_names[[1L]], "overview_projection_point_size") ||
+        any(
+          !point_names %in%
+            c(
+              "overview_projection_point_size",
+              "projection_point_opacity"
+            )
+        )
+    ) {
+      return(FALSE)
+    }
+    opacity <- point_size$projection_point_opacity
+    if (
+      !is.null(opacity) &&
+        (!is.numeric(opacity) ||
+          length(opacity) != 1L ||
+          is.na(opacity) ||
+          !is.finite(opacity) ||
+          opacity < 0.1 ||
+          opacity > 1)
     ) {
       return(FALSE)
     }

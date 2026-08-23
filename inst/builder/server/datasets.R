@@ -245,6 +245,7 @@ send_projection_state <- function(entry, message = NULL) {
       ),
       default = entry$settings$default_projection %||% NULL,
       point_size = entry$settings$overview_point_size %||% 5,
+      point_opacity = entry$settings$overview_point_opacity %||% 1,
       percentage_cells_to_show = entry$settings[[
         "overview_percentage_cells_to_show"
       ]] %||%
@@ -396,6 +397,32 @@ observeEvent(
     entry <- builder_upgrade_viewer_content_entry(isolate(entry_of(id)))
     req(entry)
     entry$settings$overview_point_size <- value
+    if (isTRUE(replace_entry(entry))) {
+      send_projection_state(entry)
+    }
+  },
+  ignoreInit = TRUE
+)
+
+observeEvent(
+  input[["core-point_opacity"]],
+  {
+    id <- current()
+    value <- suppressWarnings(as.numeric(input[["core-point_opacity"]]))
+    if (
+      is.null(id) ||
+        !identical(input[["core-rendered_for"]], id) ||
+        length(value) != 1L ||
+        is.na(value) ||
+        !is.finite(value) ||
+        value < 0.1 ||
+        value > 1
+    ) {
+      return()
+    }
+    entry <- builder_upgrade_viewer_content_entry(isolate(entry_of(id)))
+    req(entry)
+    entry$settings$overview_point_opacity <- value
     if (isTRUE(replace_entry(entry))) {
       send_projection_state(entry)
     }
@@ -806,6 +833,7 @@ output[["core-projection_gallery"]] <- renderUI({
     included_projections = entry$settings$included_projections,
     default_projection = entry$settings$default_projection,
     overview_point_size = entry$settings$overview_point_size,
+    overview_point_opacity = entry$settings$overview_point_opacity,
     overview_percentage_cells_to_show = entry$settings[[
       "overview_percentage_cells_to_show"
     ]],

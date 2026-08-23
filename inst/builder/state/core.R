@@ -467,6 +467,17 @@ builder_upgrade_viewer_content_entry <- function(entry) {
   settings$included_projections <- projections
   settings["default_projection"] <- list(default_projection)
   settings$overview_point_size <- as.numeric(point_size)
+  point_opacity <- suppressWarnings(as.numeric(settings$overview_point_opacity))
+  if (
+    length(point_opacity) != 1L ||
+      is.na(point_opacity) ||
+      !is.finite(point_opacity) ||
+      point_opacity < 0.1 ||
+      point_opacity > 1
+  ) {
+    point_opacity <- 1
+  }
+  settings$overview_point_opacity <- point_opacity
   settings$overview_percentage_cells_to_show <- as.numeric(
     percentage_cells_to_show
   )
@@ -671,6 +682,20 @@ builder_upgrade_viewer_content_entry <- function(entry) {
       "Initial point size must be between 0 and 20."
     )
   }
+  point_opacity <- settings$overview_point_opacity
+  if (
+    !is.numeric(point_opacity) ||
+      length(point_opacity) != 1L ||
+      is.na(point_opacity) ||
+      !is.finite(point_opacity) ||
+      point_opacity < 0.1 ||
+      point_opacity > 1
+  ) {
+    .builder_state_abort(
+      "invalid_viewer_content_settings",
+      "Initial point opacity must be between 0.1 and 1."
+    )
+  }
   percentage_cells_to_show <- settings$overview_percentage_cells_to_show
   if (
     !is.numeric(percentage_cells_to_show) ||
@@ -764,7 +789,10 @@ builder_upgrade_viewer_content_entry <- function(entry) {
         names(legacy_profile)
     )
   artifact <- .subset2(entry, "project_artifact")
-  artifact_ready <- identical(.subset2(entry, "load_state"), "artifact_ready") &&
+  artifact_ready <- identical(
+    .subset2(entry, "load_state"),
+    "artifact_ready"
+  ) &&
     is.list(artifact) &&
     !is.object(artifact) &&
     identical(.subset2(artifact, "status"), "ready") &&

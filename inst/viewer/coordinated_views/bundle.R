@@ -1332,13 +1332,19 @@ cv_build_bundle <- function(crb) {
       default_percentage_cells_to_show
     )
   }
-  default_point_opacity <- if (
-    exists("Cerebro.options") &&
-      !is.null(Cerebro.options[["overview_default_point_opacity"]])
+  default_point_opacity <- suppressWarnings(as.numeric(
+    if (exists("Cerebro.options")) {
+      Cerebro.options[["projection_default_point_opacity"]]
+    } else {
+      NULL
+    }
+  ))
+  if (
+    length(default_point_opacity) != 1L ||
+      is.na(default_point_opacity) ||
+      !is.finite(default_point_opacity)
   ) {
-    Cerebro.options[["overview_default_point_opacity"]]
-  } else {
-    1
+    default_point_opacity <- 1
   }
   spaces <- list()
   if (length(projections)) {

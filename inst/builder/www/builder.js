@@ -2929,6 +2929,19 @@
     if (emit && input.dataset.inputId) send(input.dataset.inputId, value);
   }
 
+  function updateProjectionPointOpacity(input, emit) {
+    var root = input.closest(".viewer-projection-workspace");
+    if (!root) return;
+    var value = Number(input.value);
+    if (!Number.isFinite(value)) return;
+    var output = root.querySelector(".viewer-point-opacity-value");
+    if (output) output.textContent = String(value);
+    root.querySelectorAll(".viewer-scatter-point").forEach(function (point) {
+      point.setAttribute("fill-opacity", String(value));
+    });
+    if (emit && input.dataset.inputId) send(input.dataset.inputId, value);
+  }
+
   function updateProjectionCellPercentage(input, emit) {
     var root = input.closest(".viewer-projection-workspace");
     if (!root) return;
@@ -2995,6 +3008,8 @@
       updateProjectionSelection(workspace, false);
       var pointSize = workspace.querySelector(".viewer-point-size-input");
       if (pointSize) updateProjectionPointSize(pointSize, false);
+      var pointOpacity = workspace.querySelector(".viewer-point-opacity-input");
+      if (pointOpacity) updateProjectionPointOpacity(pointOpacity, false);
       var cellPercentage = workspace.querySelector(".viewer-cell-percentage-input");
       if (cellPercentage) updateProjectionCellPercentage(cellPercentage, false);
     });
@@ -3058,6 +3073,11 @@
     if (pointSize && message && Number.isFinite(Number(message.point_size))) {
       pointSize.value = String(message.point_size);
       updateProjectionPointSize(pointSize, false);
+    }
+    var pointOpacity = root.querySelector(".viewer-point-opacity-input");
+    if (pointOpacity && message && Number.isFinite(Number(message.point_opacity))) {
+      pointOpacity.value = String(message.point_opacity);
+      updateProjectionPointOpacity(pointOpacity, false);
     }
     var cellPercentage = root.querySelector(".viewer-cell-percentage-input");
     if (
@@ -3976,6 +3996,10 @@
       updateProjectionPointSize(event.target, false);
       return;
     }
+    if (event.target.matches(".viewer-point-opacity-input")) {
+      updateProjectionPointOpacity(event.target, false);
+      return;
+    }
     if (event.target.matches(".viewer-cell-percentage-input")) {
       updateProjectionCellPercentage(event.target, false);
       return;
@@ -4043,6 +4067,10 @@
     }
     if (event.target.matches(".viewer-point-size-input")) {
       updateProjectionPointSize(event.target, true);
+      return;
+    }
+    if (event.target.matches(".viewer-point-opacity-input")) {
+      updateProjectionPointOpacity(event.target, true);
       return;
     }
     if (event.target.matches(".viewer-cell-percentage-input")) {

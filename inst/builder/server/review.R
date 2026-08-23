@@ -779,6 +779,7 @@ render_configure_workbench <- function() {
       "included_projections",
       "default_projection",
       "overview_point_size",
+      "overview_point_opacity",
       "overview_percentage_cells_to_show",
       "included_trajectories",
       "default_trajectory",

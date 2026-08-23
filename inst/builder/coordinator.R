@@ -226,6 +226,7 @@ builder_release_runtime_files <- function() {
       "default_projection",
       "default_trajectory",
       "overview_point_size",
+      "overview_point_opacity",
       "overview_percentage_cells_to_show",
       "expression_backend",
       "sidecars"

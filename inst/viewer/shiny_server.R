@@ -120,8 +120,8 @@ server <- function(input, output, session) {
       step = 0.1,
       default = ifelse(
         exists('Cerebro.options') &&
-          !is.null(Cerebro.options[['overview_default_point_opacity']]),
-        Cerebro.options[['overview_default_point_opacity']],
+          !is.null(Cerebro.options[['projection_default_point_opacity']]),
+        Cerebro.options[['projection_default_point_opacity']],
         1.0
       )
     ),

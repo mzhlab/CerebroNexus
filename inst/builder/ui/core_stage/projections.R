@@ -212,6 +212,10 @@ builder_projection_catalog_model <- function(model) {
       model$overview_point_size,
       5
     ),
+    point_opacity = .builder_viewer_scalar_number(
+      model$overview_point_opacity,
+      1
+    ),
     percentage_cells_to_show = .builder_viewer_scalar_number(
       model$overview_percentage_cells_to_show,
       100
@@ -248,6 +252,27 @@ builder_projection_catalog_ui <- function(id, model) {
           step = "1",
           value = format(model$point_size, trim = TRUE),
           `data-input-id` = ns("point_size")
+        )
+      ),
+      div(
+        class = "viewer-projection-control",
+        tags$label(
+          `for` = ns("overview_point_opacity"),
+          span("Initial point opacity"),
+          span(
+            class = "viewer-range-value viewer-point-opacity-value",
+            format(model$point_opacity, trim = TRUE)
+          )
+        ),
+        tags$input(
+          id = ns("overview_point_opacity"),
+          class = "viewer-range-input viewer-point-opacity-input",
+          type = "range",
+          min = "0.1",
+          max = "1",
+          step = "0.1",
+          value = format(model$point_opacity, trim = TRUE),
+          `data-input-id` = ns("point_opacity")
         )
       ),
       div(

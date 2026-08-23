@@ -750,6 +750,7 @@ builder_freeze_plan <- function(
           settings$reductions[[1L]],
         default_trajectory = settings$default_trajectory %||% NULL,
         overview_point_size = settings$overview_point_size %||% 5,
+        overview_point_opacity = settings$overview_point_opacity %||% 1,
         overview_percentage_cells_to_show = settings[[
           "overview_percentage_cells_to_show"
         ]] %||%
@@ -873,6 +874,9 @@ builder_freeze_plan <- function(
   initial_point_size <- items[[initial_dataset_for_defaults]][[
     "overview_point_size"
   ]]
+  initial_point_opacity <- items[[initial_dataset_for_defaults]][[
+    "overview_point_opacity"
+  ]]
   default_app_options <- list(
     enabled = isTRUE(make_app),
     show_upload_ui = FALSE,
@@ -880,7 +884,10 @@ builder_freeze_plan <- function(
     initial_dataset_mode = "automatic",
     initial_page = "data_info",
     welcome_message = "Welcome to CerebroNexus!",
-    point_size = list(overview_projection_point_size = initial_point_size),
+    point_size = list(
+      overview_projection_point_size = initial_point_size,
+      projection_point_opacity = initial_point_opacity
+    ),
     variable_to_compare = FALSE,
     host = "127.0.0.1",
     port = 8080L,

@@ -40,6 +40,7 @@
       default_projection = .subset2(item, "default_projection"),
       default_trajectory = .subset2(item, "default_trajectory"),
       overview_point_size = .subset2(item, "overview_point_size"),
+      overview_point_opacity = .subset2(item, "overview_point_opacity"),
       overview_percentage_cells_to_show = .subset2(
         item,
         "overview_percentage_cells_to_show"

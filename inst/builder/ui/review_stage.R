@@ -415,6 +415,7 @@ builder_review_model <- function(plan, verification = NULL) {
       color_custom_count
     }
     point_size <- item$overview_point_size %||% 5
+    point_opacity <- item$overview_point_opacity %||% 1
     trajectory_model <- builder_review_trajectory_model(
       item$included_trajectories %||% list(),
       item$default_trajectory %||% NULL
@@ -481,7 +482,8 @@ builder_review_model <- function(plan, verification = NULL) {
           } else {
             "Not selected"
           },
-          point_size = as.numeric(point_size)
+          point_size = as.numeric(point_size),
+          point_opacity = as.numeric(point_opacity)
         ),
         trajectories = trajectory_model,
         analysis_results = analysis_results,
@@ -750,7 +752,12 @@ builder_review_stage_ui <- function(id, model, footer = NULL) {
                   )),
                   p(
                     class = "hint",
-                    paste("Point size", viewer_content$projections$point_size)
+                    paste0(
+                      "Point size ",
+                      viewer_content$projections$point_size,
+                      " · Opacity ",
+                      viewer_content$projections$point_opacity
+                    )
                   )
                 ),
                 if (!is.null(viewer_content$trajectories)) {

@@ -24,7 +24,10 @@ builder_build_app <- function(
     spatial_image_settings = request$spatial_image_settings,
     cerebro_options = list(
       exclude_trivial_metadata = TRUE,
-      viewer_content = request$viewer_content
+      viewer_content = request$viewer_content,
+      projection_default_point_opacity = request$point_size[[
+        "projection_point_opacity"
+      ]]
     ),
     overwrite = FALSE,
     quiet = TRUE,

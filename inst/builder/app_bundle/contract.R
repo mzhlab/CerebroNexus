@@ -423,13 +423,28 @@
     nzchar(trimws(options$welcome_message)) &&
     is.list(point_size) &&
     !is.object(point_size) &&
-    identical(names(point_size), "overview_projection_point_size") &&
+    length(names(point_size)) >= 1L &&
+    identical(names(point_size)[[1L]], "overview_projection_point_size") &&
+    all(
+      names(point_size) %in%
+        c(
+          "overview_projection_point_size",
+          "projection_point_opacity"
+        )
+    ) &&
     is.numeric(point_value) &&
     length(point_value) == 1L &&
     !is.na(point_value) &&
     is.finite(point_value) &&
     point_value >= 0 &&
     point_value <= 20 &&
+    (is.null(point_size$projection_point_opacity) ||
+      (is.numeric(point_size$projection_point_opacity) &&
+        length(point_size$projection_point_opacity) == 1L &&
+        !is.na(point_size$projection_point_opacity) &&
+        is.finite(point_size$projection_point_opacity) &&
+        point_size$projection_point_opacity >= 0.1 &&
+        point_size$projection_point_opacity <= 1)) &&
     is.logical(options$variable_to_compare) &&
     length(options$variable_to_compare) == 1L &&
     !is.na(options$variable_to_compare) &&

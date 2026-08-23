@@ -411,13 +411,32 @@
       is.na(plain$welcome_message) ||
       !nzchar(trimws(plain$welcome_message)) ||
       !is.list(plain$point_size) ||
-      !identical(names(plain$point_size), "overview_projection_point_size") ||
+      is.null(names(plain$point_size)) ||
+      !length(names(plain$point_size)) ||
+      !identical(
+        names(plain$point_size)[[1L]],
+        "overview_projection_point_size"
+      ) ||
+      any(
+        !names(plain$point_size) %in%
+          c(
+            "overview_projection_point_size",
+            "projection_point_opacity"
+          )
+      ) ||
       !is.numeric(plain$point_size$overview_projection_point_size) ||
       length(plain$point_size$overview_projection_point_size) != 1L ||
       is.na(plain$point_size$overview_projection_point_size) ||
       !is.finite(plain$point_size$overview_projection_point_size) ||
       plain$point_size$overview_projection_point_size < 0 ||
       plain$point_size$overview_projection_point_size > 20 ||
+      (!is.null(plain$point_size$projection_point_opacity) &&
+        (!is.numeric(plain$point_size$projection_point_opacity) ||
+          length(plain$point_size$projection_point_opacity) != 1L ||
+          is.na(plain$point_size$projection_point_opacity) ||
+          !is.finite(plain$point_size$projection_point_opacity) ||
+          plain$point_size$projection_point_opacity < 0.1 ||
+          plain$point_size$projection_point_opacity > 1)) ||
       !.builder_app_viewer_content_valid(
         plain$viewer_content,
         plain$selector_order
