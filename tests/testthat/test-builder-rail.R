@@ -638,8 +638,7 @@ if (builder_rail_api_available) {
     expect_match(html, "ds ds--ready is-active", fixed = TRUE)
     expect_match(html, 'data-load-state="ready"', fixed = TRUE)
     expect_match(html, 'class="ds-ready-stamp needs-review"', fixed = TRUE)
-    expect_match(html, ">NEEDS<", fixed = TRUE)
-    expect_match(html, ">CHECK<", fixed = TRUE)
+    expect_match(html, ">Needs check<", fixed = TRUE)
     expect_false(grepl("ds-ready-dot", html, fixed = TRUE))
     expect_match(html, 'aria-current="true"', fixed = TRUE)
     expect_match(html, "12 cells", fixed = TRUE)
@@ -848,7 +847,7 @@ if (builder_rail_api_available) {
 
     rail <- as.character(builder_dataset_rail_ui(state, current = "b"))
 
-    expect_length(gregexpr("NEEDS", rail, fixed = TRUE)[[1L]], 2L)
+    expect_length(gregexpr("Needs check", rail, fixed = TRUE)[[1L]], 2L)
     expect_match(rail, "Dataset B", fixed = TRUE)
     expect_match(rail, 'aria-current="true"', fixed = TRUE)
     expect_false(grepl("datasets reviewed", rail, fixed = TRUE))
