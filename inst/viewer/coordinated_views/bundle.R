@@ -1306,7 +1306,16 @@ cv_build_bundle <- function(crb) {
       is.na(default_point_size) ||
       !is.finite(default_point_size)
   ) {
-    default_point_size <- NULL
+    default_point_size <- if (
+      exists("Cerebro.options") &&
+        !is.null(Cerebro.options[["point_size"]][[
+          "overview_projection_point_size"
+        ]])
+    ) {
+      Cerebro.options[["point_size"]][["overview_projection_point_size"]]
+    } else {
+      2
+    }
   } else {
     default_point_size <- unname(default_point_size)
   }
@@ -1323,7 +1332,14 @@ cv_build_bundle <- function(crb) {
       default_percentage_cells_to_show
     )
   }
-  default_point_opacity <- NULL
+  default_point_opacity <- if (
+    exists("Cerebro.options") &&
+      !is.null(Cerebro.options[["overview_default_point_opacity"]])
+  ) {
+    Cerebro.options[["overview_default_point_opacity"]]
+  } else {
+    1
+  }
   spaces <- list()
   if (length(projections)) {
     configured_projection <- viewer_content[["default_projection"]]

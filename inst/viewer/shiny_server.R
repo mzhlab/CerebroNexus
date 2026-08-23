@@ -92,11 +92,8 @@ server <- function(input, output, session) {
   ## Central parameters.
   ##--------------------------------------------------------------------------##
   preferences <- reactiveValues(
-    overview_plot_point_size = list(
-      min = 0,
-      max = 20,
-      step = 1,
-      configured = if (
+    projection_plot_point_size = local({
+      configured <- if (
         exists("Cerebro.options") &&
           !is.null(Cerebro.options[["point_size"]]) &&
           !is.null(Cerebro.options[["point_size"]][[
@@ -108,26 +105,16 @@ server <- function(input, output, session) {
         ]]
       } else {
         NULL
-      },
-      default = ifelse(
-        exists('Cerebro.options') &&
-          !is.null(Cerebro.options[['overview_default_point_size']]),
-        Cerebro.options[['overview_default_point_size']],
-        2
+      }
+      list(
+        min = 1,
+        max = 20,
+        step = 1,
+        configured = configured,
+        default = if (is.null(configured)) 2 else configured
       )
-    ),
-    gene_expression_plot_point_size = list(
-      min = 1,
-      max = 20,
-      step = 1,
-      default = ifelse(
-        exists('Cerebro.options') &&
-          !is.null(Cerebro.options[['gene_expression_default_point_size']]),
-        Cerebro.options[['gene_expression_default_point_size']],
-        2
-      )
-    ),
-    overview_plot_point_opacity = list(
+    }),
+    projection_plot_point_opacity = list(
       min = 0.1,
       max = 1.0,
       step = 0.1,
@@ -135,17 +122,6 @@ server <- function(input, output, session) {
         exists('Cerebro.options') &&
           !is.null(Cerebro.options[['overview_default_point_opacity']]),
         Cerebro.options[['overview_default_point_opacity']],
-        1.0
-      )
-    ),
-    gene_expression_plot_point_opacity = list(
-      min = 0.1,
-      max = 1.0,
-      step = 0.1,
-      default = ifelse(
-        exists('Cerebro.options') &&
-          !is.null(Cerebro.options[['gene_expression_default_point_opacity']]),
-        Cerebro.options[['gene_expression_default_point_opacity']],
         1.0
       )
     ),

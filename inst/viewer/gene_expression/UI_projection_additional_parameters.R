@@ -2,7 +2,7 @@
 ## UI elements to set additional plotting parameters.
 ##----------------------------------------------------------------------------##
 output[["expression_projection_additional_parameters_UI"]] <- renderUI({
-  point_size_default <- preferences[["gene_expression_plot_point_size"]][[
+  point_size_default <- preferences[["projection_plot_point_size"]][[
     "default"
   ]]
 
@@ -16,18 +16,18 @@ output[["expression_projection_additional_parameters_UI"]] <- renderUI({
     sliderInput(
       "expression_projection_point_size",
       label = "Point size",
-      min = preferences[["gene_expression_plot_point_size"]][["min"]],
-      max = preferences[["gene_expression_plot_point_size"]][["max"]],
-      step = preferences[["gene_expression_plot_point_size"]][["step"]],
+      min = preferences[["projection_plot_point_size"]][["min"]],
+      max = preferences[["projection_plot_point_size"]][["max"]],
+      step = preferences[["projection_plot_point_size"]][["step"]],
       value = point_size_default
     ),
     sliderInput(
       "expression_projection_point_opacity",
       label = "Point opacity",
-      min = preferences[["gene_expression_plot_point_opacity"]][["min"]],
-      max = preferences[["gene_expression_plot_point_opacity"]][["max"]],
-      step = preferences[["gene_expression_plot_point_opacity"]][["step"]],
-      value = preferences[["gene_expression_plot_point_opacity"]][["default"]]
+      min = preferences[["projection_plot_point_opacity"]][["min"]],
+      max = preferences[["projection_plot_point_opacity"]][["max"]],
+      step = preferences[["projection_plot_point_opacity"]][["step"]],
+      value = preferences[["projection_plot_point_opacity"]][["default"]]
     ),
     sliderInput(
       "expression_projection_percentage_cells_to_show",

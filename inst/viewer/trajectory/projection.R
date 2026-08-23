@@ -196,7 +196,7 @@ trajectory_projection_main_parameters_info <- list(
 ##----------------------------------------------------------------------------##
 
 output[["trajectory_projection_additional_parameters_UI"]] <- renderUI({
-  default_point_size <- preferences[["gene_expression_plot_point_size"]][[
+  default_point_size <- preferences[["projection_plot_point_size"]][[
     "default"
   ]]
 
@@ -215,18 +215,18 @@ output[["trajectory_projection_additional_parameters_UI"]] <- renderUI({
     sliderInput(
       "trajectory_point_size",
       label = "Point size",
-      min = preferences[["gene_expression_plot_point_size"]][["min"]],
-      max = preferences[["gene_expression_plot_point_size"]][["max"]],
-      step = preferences[["gene_expression_plot_point_size"]][["step"]],
+      min = preferences[["projection_plot_point_size"]][["min"]],
+      max = preferences[["projection_plot_point_size"]][["max"]],
+      step = preferences[["projection_plot_point_size"]][["step"]],
       value = default_point_size
     ),
     sliderInput(
       "trajectory_point_opacity",
       label = "Point opacity",
-      min = preferences[["gene_expression_plot_point_opacity"]][["min"]],
-      max = preferences[["gene_expression_plot_point_opacity"]][["max"]],
-      step = preferences[["gene_expression_plot_point_opacity"]][["step"]],
-      value = preferences[["gene_expression_plot_point_opacity"]][["default"]]
+      min = preferences[["projection_plot_point_opacity"]][["min"]],
+      max = preferences[["projection_plot_point_opacity"]][["max"]],
+      step = preferences[["projection_plot_point_opacity"]][["step"]],
+      value = preferences[["projection_plot_point_opacity"]][["default"]]
     ),
     sliderInput(
       "trajectory_percentage_cells_to_show",
