@@ -1428,6 +1428,36 @@ test_that("More settings is an accessible drawer rather than a draggable window"
   expect_no_match(css, "transition: transform .3s", fixed = TRUE)
 })
 
+test_that("More settings uses the available full-screen width without squeezing controls", {
+  skip_if(is.na(local_inst), "viewer sources not found")
+
+  css <- paste(
+    readLines(
+      file.path(local_inst, "viewer/www/coordviews.css"),
+      warn = FALSE
+    ),
+    collapse = "\n"
+  )
+
+  expect_match(
+    css,
+    "@media (min-width: 680px) and (max-width: 900px)",
+    fixed = TRUE
+  )
+  expect_match(
+    css,
+    "grid-template-columns: repeat(3, minmax(0, 1fr))",
+    fixed = TRUE
+  )
+  expect_match(css, "#cv-more .cv-range { width: 100%; }", fixed = TRUE)
+  expect_match(
+    css,
+    "grid-template-columns: repeat(2, minmax(0, 1fr))",
+    fixed = TRUE
+  )
+  expect_match(css, "grid-column: 1 / -1", fixed = TRUE)
+})
+
 test_that("external backgrounds require matching PNG or JPEG magic bytes", {
   skip_if_not(have_bundle)
   skip_if_not_installed("base64enc")

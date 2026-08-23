@@ -397,6 +397,9 @@
 }
 #cv-more .cv-more-points .cv-more-heading { flex: 0 0 100%; margin-bottom: -4px; }
 #cv-more .cv-more-points .cv-more-heading { grid-column: 1 / -1; }
+#cv-more .cv-ctl-range { min-width: 0; width: 100%; }
+#cv-more .cv-range { width: 100%; }
+#cv-more .cv-range input[type=range] { width: 100%; }
 /* The controls drift up a few px as the row closes, so the row reads as folding
    away rather than being clipped off. */
 #cv-more .cv-more-inner > * {
@@ -414,10 +417,22 @@
   #cv-more .cv-more-titlebar { height: 56px; }
   #cv-more .cv-more-inner { padding: 20px 4px 18px; }
 }
+@media (min-width: 680px) and (max-width: 900px) {
+  #cv-more .cv-more-points {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  #cv-more .cv-trekker {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  #cv-more .cv-evidence-chk { grid-column: 1 / -1; }
+}
 .coordviews-page .cv-filters { min-width: 200px; }
 /* Trekker-only controls (dissolve + evidence toggle) inside the More panel */
-.coordviews-page .cv-trekker { display: flex; gap: 20px; align-items: flex-start; }
-.coordviews-page .cv-evidence-chk { align-self: flex-end; padding-bottom: 4px; }
+.coordviews-page .cv-trekker {
+  display: grid; grid-template-columns: minmax(0, 1fr);
+  gap: 18px; align-items: start;
+}
+.coordviews-page .cv-evidence-chk { align-self: start; padding-bottom: 4px; }
 /* niche-radius slider disabled until a nucleus is picked */
 .coordviews-page .cv-disabled { opacity: 0.45; }
 .coordviews-page .cv-disabled input[type=range] { cursor: not-allowed; }
