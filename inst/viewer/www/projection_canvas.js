@@ -75,13 +75,17 @@
     tip.className = 'cerebro-canvas-tip';
     const select = document.createElement('div');
     select.className = 'cerebro-canvas-selection';
+    const mini = document.createElement('canvas');
+    mini.className = 'cerebro-canvas-minimap';
+    mini.width = 84;
+    mini.height = 84;
     const toolbar = document.createElement('div');
     toolbar.className = 'cerebro-canvas-toolbar';
     toolbar.innerHTML = '<button type="button" class="cerebro-plot-tool" data-mode="select" title="Box select" aria-label="Box select"><i class="fas fa-vector-square"></i></button><button type="button" class="cerebro-plot-tool is-active" data-mode="lasso" title="Lasso select" aria-label="Lasso select"><i class="fas fa-draw-polygon"></i></button><button type="button" class="cerebro-plot-tool" data-mode="pan" title="Pan" aria-label="Pan"><i class="fas fa-up-down-left-right"></i></button><button type="button" class="cerebro-plot-tool" data-action="zoom-in" title="Zoom in" aria-label="Zoom in"><i class="fas fa-search-plus"></i></button><button type="button" class="cerebro-plot-tool" data-action="zoom-out" title="Zoom out" aria-label="Zoom out"><i class="fas fa-search-minus"></i></button><button type="button" class="cerebro-plot-tool" data-action="reset" title="Reset view" aria-label="Reset view"><i class="fas fa-home"></i></button><button type="button" class="cerebro-plot-tool" data-action="download" title="Download PNG" aria-label="Download PNG"><i class="fas fa-download"></i></button>';
-    host.appendChild(canvas); host.appendChild(select); host.appendChild(tip); host.appendChild(toolbar);
+    host.appendChild(canvas); host.appendChild(select); host.appendChild(mini); host.appendChild(tip); host.appendChild(toolbar);
     state = {
       id: id, host: host, canvas: canvas, ctx: canvas.getContext('2d'), tip: tip,
-      select: select, points: [], centers: [], shapes: [], selected: new Set(),
+      select: select, mini: mini, miniCtx: mini.getContext('2d'), points: [], centers: [], shapes: [], selected: new Set(),
       hidden: new Set(), bounds: null, fullBounds: null, drag: null, zoomed: false,
       radius: 2.5, opacity: .85, raf: null, mode: 'lasso', toolbar: toolbar
     };
@@ -116,6 +120,9 @@
       state.canvas.style.width = w + 'px'; state.canvas.style.height = h + 'px';
       state.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
+    state.mini.width = 84 * dpr;
+    state.mini.height = 84 * dpr;
+    state.miniCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
     state.width = w; state.height = h; schedule(state);
   }
   function schedule(state) {
@@ -131,6 +138,41 @@
     const b = state.bounds;
     return [b.x0 + (sx - PAD) / (state.width - PAD * 2) * (b.x1 - b.x0),
       b.y0 + (state.height - PAD - sy) / (state.height - PAD * 2) * (b.y1 - b.y0)];
+  }
+  function selectedBounds(state) {
+    const xs = [], ys = [];
+    state.points.forEach(function (p) {
+      if (state.selected.has(p.key) && !state.hidden.has(p.group)) {
+        xs.push(p.x); ys.push(p.y);
+      }
+    });
+    return xs.length ? paddedBounds(xs, ys) : null;
+  }
+  function drawMinimap(state) {
+    const ctx = state.miniCtx, size = 84, full = state.fullBounds;
+    const show = state.selected.size > 0 || state.zoomed;
+    state.mini.style.display = show ? 'block' : 'none';
+    if (!show || !full) return;
+    ctx.clearRect(0, 0, size, size);
+    ctx.fillStyle = 'rgba(255,255,255,.92)'; ctx.fillRect(0, 0, size, size);
+    const map = function (x, y) {
+      return [
+        5 + (x - full.x0) / (full.x1 - full.x0) * 74,
+        79 - (y - full.y0) / (full.y1 - full.y0) * 74
+      ];
+    };
+    state.points.forEach(function (p) {
+      if (state.hidden.has(p.group)) return;
+      const q = map(p.x, p.y);
+      ctx.fillStyle = state.selected.has(p.key) ? '#2563b8' : '#b8c0c8';
+      ctx.globalAlpha = state.selected.has(p.key) ? .95 : .45;
+      ctx.fillRect(q[0] - 1, q[1] - 1, 2, 2);
+    });
+    ctx.globalAlpha = 1;
+    const view = state.bounds || full;
+    const a = map(view.x0, view.y1), b = map(view.x1, view.y0);
+    ctx.strokeStyle = '#2563b8'; ctx.lineWidth = 1.5; ctx.setLineDash([]);
+    ctx.strokeRect(a[0], a[1], Math.max(2, b[0] - a[0]), Math.max(2, b[1] - a[1]));
   }
   function draw(state) {
     if (!state.width || !state.height || !state.bounds) return;
@@ -164,6 +206,12 @@
         const q = screen(state, p.x, p.y);
         c.beginPath(); c.arc(q[0], q[1], state.radius + 2.5, 0, Math.PI * 2); c.stroke();
       });
+      const sb = selectedBounds(state);
+      if (sb) {
+        const a = screen(state, sb.x0, sb.y1), b = screen(state, sb.x1, sb.y0);
+        c.strokeStyle = '#2563b8'; c.lineWidth = 1.25; c.setLineDash([5, 4]);
+        c.strokeRect(a[0], a[1], b[0] - a[0], b[1] - a[1]); c.setLineDash([]);
+      }
     }
     c.globalAlpha = 1; c.font = '600 12px Inter, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
     state.centers.forEach(function (p) {
@@ -172,6 +220,7 @@
       c.fillStyle = 'rgba(255,255,255,.78)'; c.fillRect(q[0] - w / 2, q[1] - 9, w, 18);
       c.fillStyle = '#252529'; c.fillText(p.group, q[0], q[1]);
     });
+    drawMinimap(state);
     if (state.drag && state.drag.lasso && state.drag.path.length > 1) {
       c.strokeStyle='#2563b8';c.lineWidth=1.25;c.setLineDash([5,4]);c.beginPath();c.moveTo(state.drag.path[0][0],state.drag.path[0][1]);state.drag.path.slice(1).forEach(function(p){c.lineTo(p[0],p[1]);});c.stroke();c.setLineDash([]);
     }

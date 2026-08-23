@@ -1717,6 +1717,20 @@ body .btn:active { transform: translateY(0.5px); }
   border: 1px dashed #2563b8;
   background: rgba(37, 99, 184, .08);
 }
+.cerebro-canvas-minimap {
+  display: none;
+  position: absolute;
+  z-index: 3;
+  right: 10px;
+  bottom: 10px;
+  width: 84px;
+  height: 84px;
+  border: 1px solid var(--c-border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, .92);
+  box-shadow: var(--shadow-1);
+  pointer-events: none;
+}
 .cerebro-canvas-tip {
   position: absolute;
   z-index: 5;
