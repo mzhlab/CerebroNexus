@@ -32,7 +32,10 @@ test_that("canonical fixtures freeze into one explicit multi-dataset plan", {
   )
   expect_identical(
     bundle$plan$app_options$point_size,
-    list(overview_projection_point_size = 6)
+    list(
+      overview_projection_point_size = 6,
+      projection_point_opacity = 1
+    )
   )
   expect_false(bundle$plan$app_options$variable_to_compare)
 })
@@ -190,7 +193,10 @@ test_that("private App config and all outputs remain inside the temporary releas
   expect_identical(config$welcome_message, "Generated App E2E")
   expect_identical(
     config$point_size,
-    list(overview_projection_point_size = 6)
+    list(
+      overview_projection_point_size = 6,
+      projection_point_opacity = 1
+    )
   )
   expect_false(config$variable_to_compare)
 

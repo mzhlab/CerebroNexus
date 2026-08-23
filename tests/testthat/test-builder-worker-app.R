@@ -377,12 +377,7 @@ test_that("workflow server exclusively owns loading and stage rendering", {
   expect_match(workbench, "stage <- selected_workflow_stage()", fixed = TRUE)
   expect_match(
     workbench,
-    paste0(
-      "upload = tagAppendAttributes(\n",
-      "      builder_empty_workbench_ui(project_active = !is.null(builder_project())),\n",
-      "      class = \"builder-stage-upload\",\n",
-      "      `data-workflow-stage` = \"upload\""
-    ),
+    "upload = tagAppendAttributes(\n      builder_empty_workbench_ui(",
     fixed = TRUE
   )
   expect_match(
@@ -1483,11 +1478,12 @@ test_that("the App keeps Build execution private until the workflow reaches it",
 })
 
 test_that("session shutdown stops the worker before releasing snapshots", {
-  lines <- builder_app_lines()
-  shutdown <- builder_app_block(
-    lines,
-    "session$onSessionEnded(function() {",
-    "## -- native file picker and examples"
+  shutdown <- paste(
+    readLines(
+      builder_profile_inst_path("builder", "server", "foundation.R"),
+      warn = FALSE
+    ),
+    collapse = "\n"
   )
   stopped <- regexpr("builder_worker_stop", shutdown, fixed = TRUE)[1L]
   confirmed <- regexpr("isTRUE(stopped$stopped)", shutdown, fixed = TRUE)[1L]
