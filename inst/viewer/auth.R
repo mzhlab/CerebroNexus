@@ -46,6 +46,48 @@
   }
 }
 
+.viewer_auth_load_local_passphrase <- function(root, env_name) {
+  current <- Sys.getenv(env_name, unset = NA_character_)
+  if (
+    is.character(current) &&
+      length(current) == 1L &&
+      !is.na(current) &&
+      nzchar(current)
+  ) {
+    return(invisible(FALSE))
+  }
+  path <- file.path(dirname(root), "viewer-auth.env")
+  link <- tryCatch(Sys.readlink(path), error = function(condition) {
+    NA_character_
+  })
+  info <- tryCatch(file.info(path), error = function(condition) NULL)
+  safe <- is.character(link) &&
+    length(link) == 1L &&
+    !is.na(link) &&
+    !nzchar(link) &&
+    !is.null(info) &&
+    nrow(info) == 1L &&
+    isTRUE(!info$isdir[[1L]]) &&
+    isTRUE(utils::file_test("-f", path)) &&
+    (.Platform$OS.type == "windows" ||
+      identical(as.integer(info$mode[[1L]]), 384L))
+  if (!safe) {
+    return(invisible(FALSE))
+  }
+  lines <- tryCatch(
+    readLines(path, warn = FALSE, encoding = "UTF-8"),
+    error = function(condition) character()
+  )
+  pattern <- paste0("^", env_name, "=([0-9a-f]{64})$")
+  if (length(lines) != 1L || !grepl(pattern, lines, perl = TRUE)) {
+    return(invisible(FALSE))
+  }
+  value <- sub(paste0("^", env_name, "="), "", lines)
+  on.exit(value <- NULL, add = TRUE)
+  do.call(Sys.setenv, stats::setNames(list(value), env_name))
+  invisible(TRUE)
+}
+
 .viewer_auth_brand <- function(cerebro_root) {
   www <- file.path(cerebro_root, "viewer", "www")
   css <- file.path(www, "auth.css")
@@ -166,6 +208,7 @@ viewer_auth_apply <- function(ui, server, config, cerebro_root = ".") {
     )
   }
 
+  .viewer_auth_load_local_passphrase(root, config$passphrase_env)
   passphrase <- Sys.getenv(config$passphrase_env, unset = NA_character_)
   on.exit(passphrase <- NULL, add = TRUE)
   if (
