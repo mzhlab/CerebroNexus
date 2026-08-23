@@ -406,11 +406,9 @@
       "Step 1 of 3 · Planning " + remaining + " CRB" +
         (remaining === 1 ? "" : "s") + " · Keep this page open."
     );
-    if (
-      !builderConnectionReady || !activityCapability("prepare_crbs")
-    ) {
+    if (!builderConnectionReady) {
       failBuilderProjectCrbRequest(
-        "Reusable CRBs cannot be prepared right now. Reconnect or finish the current Builder operation, then try again."
+        "The Builder connection is not ready, so CRB preparation did not start."
       );
       return;
     }

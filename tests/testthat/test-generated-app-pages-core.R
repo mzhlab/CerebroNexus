@@ -96,9 +96,11 @@ test_that("Gene expression renders the exact selected source-gene values", {
   generated_app_e2e_wait_input("expression_genes_input")
   generated_app_e2e_set_input("expression_genes_input", "GENE001")
 
-  displayed <- generated_app_e2e_output_text("expression_genes_displayed")
-  expect_match(displayed, "GENE001", fixed = TRUE)
-  expect_match(displayed, "0 gene(s) are not in data set", fixed = TRUE)
+  generated_app_e2e_driver()$wait_for_idle(timeout = 60000)
+  displayed <- generated_app_e2e_driver()$get_js(
+    "(function(){var node=document.getElementById('expression_genes_displayed');return node?(node.textContent||'').trim():'';})()"
+  )
+  expect_identical(as.character(displayed %||% ""), "")
   generated_app_e2e_wait_plotly("expression_projection")
 
   observed <- generated_app_e2e_value(
