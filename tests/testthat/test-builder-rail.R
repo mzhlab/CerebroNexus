@@ -97,31 +97,42 @@ builder_rail_source("extras.R")
 builder_rail_source(file.path("ui", "dataset_rail.R"))
 
 test_that("the empty workspace presents the first guided step", {
-  had_examples <- exists(
-    "builder_example_buttons_ui",
-    envir = globalenv(),
-    inherits = FALSE
+  helpers <- c("builder_example_buttons_ui", "builder_stage_footer_ui")
+  had_helpers <- setNames(
+    vapply(
+      helpers,
+      exists,
+      logical(1),
+      envir = globalenv(),
+      inherits = FALSE
+    ),
+    helpers
   )
-  old_examples <- if (had_examples) {
-    get("builder_example_buttons_ui", envir = globalenv())
-  } else {
-    NULL
-  }
+  old_helpers <- lapply(
+    helpers,
+    function(name) {
+      if (had_helpers[[name]]) get(name, envir = globalenv()) else NULL
+    }
+  )
+  names(old_helpers) <- helpers
   assign(
     "builder_example_buttons_ui",
     function(...) shiny::tagList(),
     envir = globalenv()
   )
+  assign(
+    "builder_stage_footer_ui",
+    function(...) shiny::tagList(),
+    envir = globalenv()
+  )
   on.exit(
     {
-      if (had_examples) {
-        assign(
-          "builder_example_buttons_ui",
-          old_examples,
-          envir = globalenv()
-        )
-      } else {
-        rm("builder_example_buttons_ui", envir = globalenv())
+      for (name in helpers) {
+        if (had_helpers[[name]]) {
+          assign(name, old_helpers[[name]], envir = globalenv())
+        } else {
+          rm(name, envir = globalenv())
+        }
       }
     },
     add = TRUE
