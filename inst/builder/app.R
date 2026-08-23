@@ -446,6 +446,14 @@ ui <- tagList(
             class = "rail-add-detail",
             "Use files on the Builder computer"
           )
+        ),
+        tags$input(
+          id = "dataset_files",
+          name = "dataset_files",
+          class = "shiny-input-file builder-upload-transport",
+          type = "file",
+          accept = paste0(".", builder_dataset_extensions(), collapse = ","),
+          hidden = "hidden"
         )
       )
     ),

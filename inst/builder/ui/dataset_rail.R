@@ -525,7 +525,6 @@ builder_empty_workbench_ui <- function(
   formats = get0("builder_formats", inherits = TRUE),
   examples = builder_example_directory()
 ) {
-  extensions <- unique(unlist(lapply(formats %||% list(), `[[`, "extensions")))
   shiny::tags$section(
     class = "builder-stage builder-empty-state",
     `aria-labelledby` = "builder-empty-title",
@@ -595,14 +594,6 @@ builder_empty_workbench_ui <- function(
         )
       ),
       builder_example_buttons_ui(examples),
-      shiny::tags$input(
-        id = "dataset_files",
-        name = "dataset_files",
-        class = "shiny-input-file builder-upload-transport",
-        type = "file",
-        accept = paste0(".", extensions, collapse = ","),
-        hidden = "hidden"
-      ),
       shiny::uiOutput("add_error")
     ),
     if (isTRUE(project_active)) {
