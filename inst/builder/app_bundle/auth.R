@@ -600,7 +600,7 @@ builder_auth_cleanup_material <- function(
 builder_auth_verify_database_pair <- function(
   database,
   env_file,
-  .validate = CerebroNexus:::.viewerAuthValidateDatabase
+  .validate = NULL
 ) {
   invalid <- function() {
     stop("The authentication database could not be verified.", call. = FALSE)
@@ -624,6 +624,14 @@ builder_auth_verify_database_pair <- function(
     !is.null(info) &&
       "type" %in% names(info) &&
       identical(as.character(info$type), "file")
+  }
+  if (is.null(.validate)) {
+    .validate <- get0(
+      ".viewerAuthValidateDatabase",
+      envir = environment(builder_auth_verify_database_pair),
+      mode = "function",
+      inherits = TRUE
+    )
   }
   if (!is.function(.validate) || !database_is_regular(database)) {
     invalid()

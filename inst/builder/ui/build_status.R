@@ -513,7 +513,7 @@ builder_build_status_model <- function(result) {
   path,
   env_file,
   env_name,
-  validate_database = CerebroNexus:::.viewerAuthValidateDatabase,
+  validate_database = NULL,
   run_app = shiny::runApp
 ) {
   if (!identical(env_name, "CEREBRO_AUTH_PASSPHRASE")) {
@@ -521,6 +521,13 @@ builder_build_status_model <- function(result) {
   }
   if (!is.function(run_app)) {
     stop("The App launcher is invalid.", call. = FALSE)
+  }
+  if (is.null(validate_database)) {
+    validate_database <- get0(
+      ".viewerAuthValidateDatabase",
+      mode = "function",
+      inherits = TRUE
+    )
   }
   if (!is.function(validate_database)) {
     stop("The authentication validator is invalid.", call. = FALSE)
@@ -608,7 +615,7 @@ builder_open_final_app <- function(
     )
   },
   .child = .builder_open_app_child,
-  .validate_database = CerebroNexus:::.viewerAuthValidateDatabase,
+  .validate_database = NULL,
   .run_app = NULL,
   .on_open = NULL,
   .open = function(path, env_file) {
@@ -636,6 +643,13 @@ builder_open_final_app <- function(
     TRUE
   }
 ) {
+  if (is.null(.validate_database)) {
+    .validate_database <- get0(
+      ".viewerAuthValidateDatabase",
+      mode = "function",
+      inherits = TRUE
+    )
+  }
   if (!is.function(.validate_database)) {
     stop("The authentication validator is invalid.", call. = FALSE)
   }
