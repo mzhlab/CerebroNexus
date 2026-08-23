@@ -23,21 +23,6 @@ dataset_mutations_locked <- function(notify = TRUE) {
   isTRUE(locked)
 }
 
-## -- native file picker and examples --------------------------------------
-## An example already on the list is not an offer any more. Which ones are
-## taken is derived state, so it is pushed rather than re-rendered.
-observe({
-  directory <- builder_example_directory_state(sets(), imports())
-  if (identical(directory, isolate(example_directory_sent()))) {
-    return()
-  }
-  example_directory_sent(directory)
-  session$sendCustomMessage(
-    "builder_used_examples",
-    directory
-  )
-})
-
 start_load <- function(
   kind,
   arg,
@@ -1848,6 +1833,16 @@ observe({
       p$id,
       "ready",
       p$import_generation %||% 1L
+    )
+    workflow(builder_reduce_workflow(
+      isolate(workflow()),
+      list(type = "datasets_ready")
+    ))
+    session$onFlushed(
+      function() {
+        session$sendCustomMessage("builder_focus_stage", list(id = "configure"))
+      },
+      once = TRUE
     )
     release_pending_source(p)
     result(NULL)

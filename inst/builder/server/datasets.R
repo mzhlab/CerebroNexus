@@ -38,7 +38,11 @@ observeEvent(
 
 last_import_rail_patch <- reactiveVal(NULL)
 observe({
-  next_patch <- builder_import_rail_patch(imports()$entries, active_import_id())
+  next_patch <- builder_import_rail_patch(
+    imports()$entries,
+    active_import_id(),
+    length(store()$datasets %||% list())
+  )
   if (identical(next_patch, isolate(last_import_rail_patch()))) {
     return()
   }
@@ -51,7 +55,11 @@ observeEvent(
   {
     session$sendCustomMessage(
       "builder_import_rail_patch",
-      builder_import_rail_patch(imports()$entries, active_import_id())
+      builder_import_rail_patch(
+        imports()$entries,
+        active_import_id(),
+        length(store()$datasets %||% list())
+      )
     )
   },
   ignoreInit = TRUE

@@ -656,9 +656,13 @@ builder_spatial_alignment_ui <- function(id, model) {
   )
 }
 
-builder_enhance_stage_ui <- function(id, model, dynamic_modules = FALSE) {
+builder_enhance_stage_ui <- function(
+  id,
+  model,
+  dynamic_modules = FALSE,
+  include_spatial = TRUE
+) {
   ns <- NS(id)
-  histology <- model$attachments$histology %||% list()
   analysis_modules <- Filter(
     function(module) isTRUE(module$relevant),
     model$modules %||% list()
@@ -778,35 +782,38 @@ builder_enhance_stage_ui <- function(id, model, dynamic_modules = FALSE) {
         )
       )
     ),
-    if (isTRUE(histology$relevant)) {
-      tags$section(
-        class = paste(
-          "builder-stage-section builder-stage-spatial",
-          "spatial-alignment-workbench"
-        ),
-        tags$details(
-          class = "builder-viewer-card builder-viewer-spatial-alignment",
-          `data-disclosure-key` = "spatial-alignment",
-          tags$summary(
-            span(class = "builder-viewer-card-title", "Spatial alignment"),
-            span(
-              class = "builder-viewer-card-count",
-              paste(
-                length(histology$sections %||% character()),
-                if (length(histology$sections %||% character()) == 1L) {
-                  "section"
-                } else {
-                  "sections"
-                }
-              )
-            )
-          ),
-          div(
-            class = "builder-viewer-card-body builder-spatial-alignment-body",
-            builder_spatial_alignment_ui(id, histology)
+    if (isTRUE(include_spatial)) builder_spatial_stage_ui(id, model)
+  )
+}
+
+builder_spatial_stage_ui <- function(id, model) {
+  histology <- model$attachments$histology %||% list()
+  if (!isTRUE(histology$relevant)) {
+    return(NULL)
+  }
+  tags$div(
+    class = "builder-stage-spatial spatial-alignment-workbench",
+    tags$details(
+      class = "builder-viewer-card builder-viewer-spatial-alignment",
+      `data-disclosure-key` = "spatial-alignment",
+      tags$summary(
+        span(class = "builder-viewer-card-title", "Spatial alignment"),
+        span(
+          class = "builder-viewer-card-count",
+          paste(
+            length(histology$sections %||% character()),
+            if (length(histology$sections %||% character()) == 1L) {
+              "section"
+            } else {
+              "sections"
+            }
           )
         )
+      ),
+      div(
+        class = "builder-viewer-card-body builder-spatial-alignment-body",
+        builder_spatial_alignment_ui(id, histology)
       )
-    }
+    )
   )
 }

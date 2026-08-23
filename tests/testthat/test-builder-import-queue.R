@@ -46,8 +46,9 @@ test_that("the live app exposes imports before their worker result", {
     expect_match(rail_html, "All content", fixed = TRUE)
     expect_match(rail_html, "builder-import-status", fixed = TRUE)
     expect_identical(output$ds_count, "1")
-    expect_match(workbench_html, "Loading dataset", fixed = TRUE)
-    expect_match(workbench_html, 'aria-live="polite"', fixed = TRUE)
+    expect_match(workbench_html, "Add your data", fixed = TRUE)
+    expect_match(workbench_html, "Choose files", fixed = TRUE)
+    expect_false(grepl("Loading dataset", workbench_html, fixed = TRUE))
     expect_false(grepl('id="build"', workbench_html, fixed = TRUE))
     expect_false(grepl('id="make_app"', workbench_html, fixed = TRUE))
     expect_false(grepl('id="continue_to_review"', workbench_html, fixed = TRUE))
@@ -178,5 +179,9 @@ test_that("loading datasets block Configure with a user-facing reason", {
     fixed = TRUE
   )
   expect_match(app, "active_import_id", fixed = TRUE)
-  expect_match(workflow_server, "builder_loading_workbench_ui", fixed = TRUE)
+  expect_false(grepl(
+    "builder_loading_workbench_ui",
+    workflow_server,
+    fixed = TRUE
+  ))
 })

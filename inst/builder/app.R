@@ -200,7 +200,6 @@ icon_svg <- function(path, label = NULL) {
     tags$path(d = path)
   )
 }
-ICON_PLUS <- "M12 5v14M5 12h14"
 
 ## The viewer's wordmark, inlined. The builder and the viewer are one product
 ## and should look like it; inlining avoids a resource path that would have to
@@ -254,23 +253,29 @@ builder_stylesheet_tags <- function(
 }
 
 builder_example_buttons_ui <- function(examples = builder_example_directory()) {
-  div(
-    class = "builder-example-directory",
-    lapply(examples, function(ex) {
-      tags$button(
-        class = "btn example-btn",
-        type = "button",
-        `data-ex` = ex$id,
-        `data-label` = ex$label,
-        `aria-disabled` = "false",
-        tags$span(
-          class = "ex-inner",
-          tags$span(class = "ex-label", ex$label),
-          tags$span(class = "ex-detail", ex$detail)
-        )
+  tagList(lapply(examples, function(ex) {
+    tags$button(
+      class = "builder-data-source example-btn",
+      type = "button",
+      `data-ex` = ex$id,
+      `data-label` = ex$label,
+      `aria-disabled` = "false",
+      tags$span(
+        class = "builder-data-source-icon",
+        `aria-hidden` = "true",
+        shiny::icon("wand-magic-sparkles")
+      ),
+      tags$span(
+        class = "builder-data-source-copy",
+        tags$strong(class = "ex-label", ex$label),
+        tags$small(class = "ex-detail", ex$detail)
+      ),
+      tags$span(
+        class = "builder-data-source-tag is-example",
+        "Example"
       )
-    })
-  )
+    )
+  }))
 }
 
 builder_app_acknowledge_build <- function(protocol, request_id) {
@@ -351,12 +356,7 @@ ui <- tagList(
     class = "topbar builder-project-header",
     div(
       class = "builder-project-brand",
-      div(class = "wordmark", cerebro_wordmark),
-      div(
-        class = "builder-project-brand-copy",
-        h1("Dataset Builder"),
-        span("Guided project workspace")
-      )
+      div(class = "wordmark", cerebro_wordmark)
     ),
     uiOutput("busy", inline = TRUE),
     builder_project_toolbar_ui()
@@ -412,45 +412,41 @@ ui <- tagList(
         )
       ),
       div(
-        class = "rail-add",
-        div(
-          class = "dataset-file-control builder-file-picker builder-file-picker--sidebar",
-          tags$input(
-            id = "dataset_files",
-            name = "dataset_files",
-            class = "shiny-input-file builder-upload-transport",
-            type = "file",
-            accept = paste(
-              paste0(
-                ".",
-                unique(unlist(lapply(builder_formats, `[[`, "extensions")))
-              ),
-              collapse = ","
-            ),
-            hidden = "hidden"
-          ),
-          tags$button(
-            id = "choose_local_datasets",
-            class = "btn btn-primary dataset-file-button action-button",
-            type = "button",
-            `data-val` = "0",
-            icon_svg(ICON_PLUS),
-            span("Choose local datasets…")
-          )
-        ),
+        class = "rail-add-actions",
         tags$button(
-          id = "builder_upload_datasets",
-          class = paste(
-            "btn btn-outline-secondary builder-file-trigger",
-            "builder-file-trigger--secondary"
-          ),
           type = "button",
-          icon_svg(ICON_PLUS),
-          span("Upload through browser…")
+          class = "btn builder-rail-add-browser",
+          `aria-label` = "Add datasets through this browser",
+          tags$span(
+            class = "rail-add-title",
+            tags$span(
+              class = "rail-add-icon",
+              `aria-hidden` = "true",
+              shiny::icon("file-arrow-up")
+            ),
+            tags$strong("Browser")
+          ),
+          tags$small(class = "rail-add-detail", "Upload from this device")
         ),
-        div(class = "or", "or try an example"),
-        builder_example_buttons_ui(),
-        uiOutput("add_error")
+        tags$span(class = "rail-add-or", "or"),
+        tags$button(
+          type = "button",
+          class = "btn builder-rail-add-local",
+          `aria-label` = "Add datasets from the Builder computer",
+          tags$span(
+            class = "rail-add-title",
+            tags$span(
+              class = "rail-add-icon",
+              `aria-hidden` = "true",
+              shiny::icon("folder-open")
+            ),
+            tags$strong("Local")
+          ),
+          tags$small(
+            class = "rail-add-detail",
+            "Use files on the Builder computer"
+          )
+        )
       )
     ),
     div(
@@ -462,7 +458,10 @@ ui <- tagList(
           id = "workbench",
           class = "shiny-html-output",
           tabindex = "-1",
-          builder_empty_workbench_ui()
+          builder_empty_workbench_ui(
+            formats = builder_formats,
+            examples = builder_example_directory()
+          )
         )
       )
     ),

@@ -483,11 +483,10 @@ test_that("last UI restoration uses safe dataset and workflow fallbacks", {
 
   restored <- runtime$builder_project_last_ui_target(
     list(stage = "build", selected_dataset = "ds2"),
-    available_ids = c("ds1", "ds2"),
-    checked_ids = c("ds1", "ds2")
+    available_ids = c("ds1", "ds2")
   )
   expect_identical(restored$selected_dataset, "ds2")
-  expect_identical(restored$stage, "review")
+  expect_identical(restored$stage, "configure")
 
   spatial <- runtime$builder_project_last_ui_target(
     list(
@@ -495,8 +494,7 @@ test_that("last UI restoration uses safe dataset and workflow fallbacks", {
       selected_dataset = "ds2",
       spatial = list(dataset = "ds2", section = "fov-b", image = "DAPI")
     ),
-    available_ids = c("ds1", "ds2"),
-    checked_ids = character()
+    available_ids = c("ds1", "ds2")
   )
   expect_identical(
     spatial$spatial,
@@ -509,12 +507,18 @@ test_that("last UI restoration uses safe dataset and workflow fallbacks", {
       selected_dataset = "skipped",
       spatial = list(dataset = "skipped", section = "fov-z", image = "old")
     ),
-    available_ids = "ds1",
-    checked_ids = character()
+    available_ids = "ds1"
   )
   expect_identical(fallback$selected_dataset, "ds1")
   expect_identical(fallback$stage, "configure")
   expect_null(fallback$spatial)
+
+  empty <- runtime$builder_project_last_ui_target(
+    list(stage = "review", selected_dataset = "ds1"),
+    available_ids = character()
+  )
+  expect_null(empty$selected_dataset)
+  expect_identical(empty$stage, "upload")
 })
 
 test_that("Spatial project UI restoration selects the saved FOV and image", {
@@ -777,6 +781,32 @@ test_that("source resume catches start failures and restores pending state", {
   expect_match(observer, "started <- tryCatch(", fixed = TRUE)
   expect_match(observer, "conditionMessage(started)", fixed = TRUE)
   expect_match(observer, "pending[[id]] <- previous_pending", fixed = TRUE)
+  expect_match(
+    observer,
+    'record$runtime_restore_target <- "configure"',
+    fixed = TRUE
+  )
+})
+
+test_that("an explicitly resumed source stays in Configure", {
+  source <- paste(
+    readLines(
+      testthat::test_path("..", "..", "inst", "builder", "server", "project.R"),
+      warn = FALSE
+    ),
+    collapse = "\n"
+  )
+
+  expect_match(
+    source,
+    'identical(record$runtime_restore_target %||% NULL, "configure")',
+    fixed = TRUE
+  )
+  expect_match(
+    source,
+    'restored_last_ui$stage <- "configure"',
+    fixed = TRUE
+  )
 })
 
 test_that("failed pre-store hydration releases its unattached snapshot", {

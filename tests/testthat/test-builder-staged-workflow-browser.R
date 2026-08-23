@@ -53,10 +53,8 @@ test_that("staged workflow remains focused and overflow-free", {
     app$click(selector = ".example-btn[data-ex=all_content]")
     app$wait_for_js(
       paste0(
-        "document.querySelectorAll('.builder-loading-stage', ",
-        "'[data-workflow-stage=upload]').length === 1 && ",
-        "document.querySelector('.builder-loading-stage",
-        "[data-workflow-stage=upload]') !== null && ",
+        "document.querySelector('.ds--import') !== null && ",
+        "document.querySelector('[data-workflow-stage=upload]') !== null && ",
         "document.querySelector('#continue_to_review, #confirm_review, ",
         ".actionbar, [data-workflow-stage=build], #make_app') === null"
       ),

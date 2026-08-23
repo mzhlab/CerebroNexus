@@ -59,7 +59,7 @@
   --builder-action-hover: #9a3412;
   --builder-action-active: #7c2d12;
   --builder-accent-strong: #65230f;
-  --builder-focus-ring: var(--c-blue-600);
+  --builder-focus-ring: var(--c-amber-600);
   --builder-selection-bg: var(--builder-action);
   --builder-text-muted: var(--c-text-2);
   --builder-text-subtle: var(--c-text-3);
@@ -69,8 +69,8 @@
   --builder-rail-selected-bg: var(--c-amber-50);
   --builder-rail-selected-marker: var(--c-amber);
   --builder-rail-hover-bg: #fffaf6;
-  --builder-rail-progress-bg: var(--c-blue-50);
-  --builder-rail-progress-fg: var(--c-blue);
+  --builder-rail-progress-bg: var(--c-amber-50);
+  --builder-rail-progress-fg: var(--c-amber);
   --builder-rail-ready-fg: var(--c-success);
   --builder-rail-error-bg: var(--c-error-50);
   --builder-rail-error-fg: var(--c-error);

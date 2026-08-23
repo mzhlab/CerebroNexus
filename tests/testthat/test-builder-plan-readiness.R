@@ -208,6 +208,28 @@ test_that("artifact entries bypass editable Spatial image validation", {
   })
 })
 
+test_that("artifact preflight reuses saved identity without loading source", {
+  local({
+    builder_repo_source("preview.R")
+    builder_repo_source("recommend.R")
+    builder_repo_source("plan.R")
+
+    entry <- builder_task6_entry()
+    saved <- builder_freeze_plan(list(entry), tempdir(), make_app = FALSE)
+    expect_null(saved$error)
+
+    entry$load_state <- "artifact_ready"
+    entry$snapshot <- NULL
+    entry$dataset_profile$identity <- NULL
+    entry$project_artifact <- list(plan_item = saved$items[[1L]])
+
+    preflight <- .builder_plan_preflight_entries(list(entry), make_app = FALSE)
+
+    expect_null(preflight$error_code)
+    expect_identical(preflight$labels, "Dataset A")
+  })
+})
+
 test_that("final included sets own their default values", {
   local({
     builder_repo_source("preview.R")

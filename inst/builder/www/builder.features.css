@@ -189,21 +189,6 @@
     height: 100%;
     align-items: stretch;
   }
-  .spatial-alignment-workbench:has(> .builder-viewer-spatial-alignment[open]) {
-    --builder-spatial-viewport-offset: 5rem;
-    display: grid;
-    grid-template-rows: auto auto minmax(0, 1fr);
-    height: calc(
-      100vh - var(--builder-spatial-viewport-offset) -
-      var(--builder-workflow-progress-height, 4.75rem)
-    );
-    height: calc(
-      100dvh - var(--builder-spatial-viewport-offset) -
-      var(--builder-workflow-progress-height, 4.75rem)
-    );
-    min-height: 0;
-    overflow: hidden;
-  }
   .builder-viewer-spatial-alignment[open] {
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
@@ -1382,6 +1367,26 @@ details > summary:focus-visible { outline: 2px solid var(--builder-action); outl
   background: transparent;
   color: var(--c-text-muted);
 }
+.review-ready-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding: .85rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--c-success) 34%, var(--c-border));
+  border-radius: var(--r-sm);
+  background: var(--c-success-50);
+  color: var(--c-success-700);
+}
+.review-ready-banner-icon {
+  display: grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: .8rem;
+}
 .review-dataset-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -1598,56 +1603,6 @@ details > summary:focus-visible { outline: 2px solid var(--builder-action); outl
   transform: translate(-50%, -52%);
 }
 
-/* ---- example data ------------------------------------------------------ */
-
-.or {
-  text-align: center; font-size: .76rem; color: var(--c-text-subtle);
-  margin: .9rem 0 .55rem;
-}
-.example-btn {
-  display: block;
-  width: 100%; text-align: left;
-  margin-bottom: .35rem;
-  padding: 0;
-  border: 0;
-  background: none;
-  min-height: auto;
-}
-.ex-inner {
-  display: block;
-  min-height: 4.65rem;
-  padding: .65rem .75rem;
-  border: 1px solid var(--c-border-2);
-  border-radius: var(--r-sm);
-  background: var(--c-surface);
-}
-.example-btn.is-taken { display: none; }
-.example-btn.is-loading { cursor: wait; }
-.example-btn.is-loading .ex-inner {
-  border-color: var(--c-amber-300);
-  background: var(--c-amber-50);
-  color: var(--builder-action-active);
-}
-.example-btn.is-loading .ex-detail { color: var(--builder-action-active); }
-.example-btn:hover .ex-inner {
-  border-color: var(--builder-hover-border);
-  background: var(--builder-hover-bg);
-}
-.example-btn:focus-visible { outline: none; }
-.example-btn:focus-visible .ex-inner {
-  outline: 2px solid var(--builder-action);
-  outline-offset: 1px;
-}
-.ex-label {
-  display: block;
-  margin-bottom: .15rem;
-  font-weight: 600;
-  font-size: .84rem;
-}
-.ex-detail {
-  display: block; font-weight: 400; font-size: .75rem; color: var(--c-text-subtle);
-  white-space: normal; line-height: 1.35;
-}
 @media (max-width: 68.75rem) {
   .spatial-alignment-layout {
     grid-template-areas: "preview" "controls";
@@ -1885,9 +1840,18 @@ details > summary:focus-visible { outline: 2px solid var(--builder-action); outl
 .builder-stage-configure,
 .builder-stage-review,
 .builder-stage-build,
-.builder-stage-configure > *,
-.builder-stage-review > *,
-.builder-stage-build > * { min-width: 0; max-width: 100%; }
+.builder-stage-configure > :not(.builder-stage-footer),
+.builder-stage-review > :not(.builder-stage-footer),
+.builder-stage-build > :not(.builder-stage-footer) {
+  min-width: 0;
+  max-width: 100%;
+}
+.builder-stage-configure > .builder-stage-footer,
+.builder-stage-review > .builder-stage-footer,
+.builder-stage-build > .builder-stage-footer {
+  min-width: 0;
+  max-width: none;
+}
 .builder-stage-build { counter-reset: builder-build-step; }
 .builder-build-summary {
   overflow-wrap: anywhere;
@@ -1940,12 +1904,13 @@ details > summary:focus-visible { outline: 2px solid var(--builder-action); outl
   margin: 0;
 }
 .builder-build-options .radio label {
+  position: relative;
   display: flex;
   width: 100%;
   min-height: 3rem;
   height: 100%;
   align-items: center;
-  padding: var(--space-3);
+  padding: var(--space-3) var(--space-3) 2.65rem;
   border: 1px solid var(--c-border);
   border-radius: var(--r-sm);
   background: var(--c-surface);
@@ -1955,6 +1920,21 @@ details > summary:focus-visible { outline: 2px solid var(--builder-action); outl
   cursor: pointer;
   transition: border-color var(--duration-fast) var(--ease-standard),
     background-color var(--duration-fast) var(--ease-standard);
+}
+.builder-build-options .radio label::after {
+  position: absolute;
+  right: var(--space-3);
+  bottom: var(--space-3);
+  left: calc(var(--space-3) + 1.25rem);
+  color: var(--c-text-muted);
+  font-size: .75rem;
+  font-weight: 400;
+}
+.builder-build-options .radio label:has(input[value="app"])::after {
+  content: "Complete Shiny app";
+}
+.builder-build-options .radio label:has(input[value="crb"])::after {
+  content: "Reusable bundles";
 }
 .builder-build-options .radio:has(input:checked) label {
   border-color: var(--c-amber-300);

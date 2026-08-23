@@ -1,19 +1,8 @@
 selected_workflow_stage <- reactive({
-  stage <- workflow()$stage
-  if (
-    identical(stage, "upload") &&
-      is.null(active_import_id()) &&
-      !is.null(current())
-  ) {
-    return("configure")
-  }
-  stage
+  workflow()$stage
 })
 
 output$workflow_progress <- renderUI({
-  if (!is.null(active_import_id())) {
-    return(NULL)
-  }
   builder_workflow_progress_ui(
     selected_workflow_stage(),
     available = builder_workflow_stage_availability(
@@ -76,7 +65,6 @@ navigate_workflow_stage <- function(stage) {
       return(invisible(FALSE))
     }
   }
-  workflow_manual_navigation(identical(stage, "upload"))
   workflow(builder_reduce_workflow(
     state,
     list(type = "navigate", stage = stage, datasets_ready = TRUE)
@@ -106,27 +94,21 @@ observeEvent(input$workflow_stage_review, {
 observeEvent(input$workflow_stage_build, {
   navigate_workflow_stage("build")
 })
+observeEvent(input$configure_datasets, {
+  navigate_workflow_stage("configure")
+})
 
 output$workbench <- renderUI({
-  loading_id <- active_import_id()
-  loading_entry <- if (is.null(loading_id)) {
-    NULL
-  } else {
-    builder_import_find(imports(), loading_id)
-  }
-  if (!is.null(loading_entry)) {
-    return(tagAppendAttributes(
-      builder_loading_workbench_ui(loading_entry),
-      class = "builder-stage-upload",
-      `data-workflow-stage` = "upload"
-    ))
-  }
-
   stage <- selected_workflow_stage()
   switch(
     stage,
     upload = tagAppendAttributes(
-      builder_empty_workbench_ui(project_active = !is.null(builder_project())),
+      builder_empty_workbench_ui(
+        project_active = !is.null(builder_project()),
+        dataset_count = length(store()$datasets %||% list()),
+        formats = builder_formats,
+        examples = builder_example_directory()
+      ),
       class = "builder-stage-upload",
       `data-workflow-stage` = "upload"
     ),

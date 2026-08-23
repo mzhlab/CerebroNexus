@@ -637,6 +637,13 @@ builder_review_stage_ui <- function(id, model, footer = NULL) {
       ),
       span(paste("Creates", model$output_label))
     ),
+    if (!length(model$warnings %||% character())) {
+      div(
+        class = "review-ready-banner",
+        span(class = "review-ready-banner-icon", "✓"),
+        strong("Everything is ready to build")
+      )
+    },
     if (length(model$warnings %||% character())) {
       tags$section(
         class = paste(
@@ -662,7 +669,6 @@ builder_review_stage_ui <- function(id, model, footer = NULL) {
           more_pages <- utils::tail(pages, max(0L, length(pages) - 8L))
           tags$details(
             class = "builder-object review-dataset-card",
-            open = if (identical(length(model$datasets), 1L)) "open" else NULL,
             tags$summary(
               tags$strong(dataset$name),
               span(

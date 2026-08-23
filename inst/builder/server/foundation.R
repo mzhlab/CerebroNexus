@@ -6,7 +6,6 @@
 store <- reactiveVal(builder_state())
 imports <- reactiveVal(builder_import_queue(max_active = 1L))
 workflow <- reactiveVal(builder_workflow_state())
-workflow_manual_navigation <- reactiveVal(FALSE)
 selected_output <- reactiveVal(NULL)
 active_import_id <- reactiveVal(NULL)
 import_focus_id <- reactive(builder_import_focus_id(imports()))
@@ -176,7 +175,6 @@ release_client_import <- function(
   )
   invisible(TRUE)
 }
-example_directory_sent <- reactiveVal(NULL)
 current_id <- reactiveVal(NULL)
 configure_workbench_surface <- reactiveVal(NULL)
 workflow_has_datasets <- reactiveVal(FALSE)
@@ -218,20 +216,12 @@ observe({
   pending <- imports()$entries %||% list()
   state <- isolate(workflow())
   if (!length(loaded) && !length(pending)) {
-    workflow_manual_navigation(FALSE)
     if (!is.null(isolate(selected_output()))) {
       selected_output(NULL)
     }
     if (!identical(state$stage, "upload") || !is.null(state$review_plan)) {
       workflow(builder_reduce_workflow(state, list(type = "empty")))
     }
-  } else if (
-    length(loaded) &&
-      !length(pending) &&
-      identical(state$stage, "upload") &&
-      !isTRUE(isolate(workflow_manual_navigation()))
-  ) {
-    workflow(builder_reduce_workflow(state, list(type = "datasets_ready")))
   }
 })
 app_store_compat_entries <- function(state, datasets, mark = FALSE) {

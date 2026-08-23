@@ -371,14 +371,10 @@ test_that("workflow server exclusively owns loading and stage rendering", {
     1L
   )
   expect_match(app, "selected_workflow_stage <- reactive({", fixed = TRUE)
-  expect_match(workbench, "loading_id <- active_import_id()", fixed = TRUE)
+  expect_false(grepl("active_import_id()", workbench, fixed = TRUE))
   expect_false(grepl("import_focus_id()", workbench, fixed = TRUE))
-  expect_match(workbench, "builder_loading_workbench_ui", fixed = TRUE)
+  expect_false(grepl("builder_loading_workbench_ui", workbench, fixed = TRUE))
   expect_match(workbench, "stage <- selected_workflow_stage()", fixed = TRUE)
-  expect_lt(
-    regexpr("builder_loading_workbench_ui", workbench, fixed = TRUE),
-    regexpr("stage <- selected_workflow_stage()", workbench, fixed = TRUE)
-  )
   expect_match(
     workbench,
     paste0(
@@ -660,7 +656,7 @@ test_that("Build owns output mode and expanded Viewer App settings", {
   app <- builder_build_options_ui(builder_build_options(make_app = TRUE))
   app_html <- builder_stage_html(app)
   expect_false(builder_build_options(make_app = TRUE)$app$launch_browser)
-  expect_match(app_html, "CRB files + Viewer App", fixed = TRUE)
+  expect_match(app_html, "Viewer app", fixed = TRUE)
   expect_match(app_html, "Welcome message", fixed = TRUE)
   expect_false(grepl("Open App after build", app_html, fixed = TRUE))
   expect_false(grepl("build_launch_browser", app_html, fixed = TRUE))

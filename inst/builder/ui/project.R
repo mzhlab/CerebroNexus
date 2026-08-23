@@ -3,7 +3,7 @@
 builder_project_toolbar_ui <- function() {
   tags$div(
     class = "builder-project-toolbar",
-    uiOutput("project_status", inline = TRUE),
+    uiOutput("project_status"),
     actionButton(
       "open_builder_project",
       tagList(shiny::icon("folder-open"), span("Open")),
@@ -37,7 +37,7 @@ builder_project_status_ui <- function(
   } else if (sync_ready && identical(phase, "clean")) {
     "Project fully saved · Safe to close"
   } else if (is.null(project)) {
-    "Not saved"
+    "No project saved"
   } else {
     switch(
       phase,
@@ -68,12 +68,16 @@ builder_project_status_ui <- function(
       if (is.null(project)) "is-unsaved" else "is-saved"
     )
   }
-  tags$span(
+  tags$div(
     class = paste("builder-project-status", status_class),
     role = "status",
     `aria-live` = "polite",
-    tags$span(class = "builder-project-status-dot", `aria-hidden` = "true"),
-    tags$span(label)
+    if (!is.null(project)) tags$strong(project$name),
+    tags$span(
+      class = "builder-project-status-detail",
+      tags$span(class = "builder-project-status-dot", `aria-hidden` = "true"),
+      tags$span(label)
+    )
   )
 }
 
@@ -103,7 +107,7 @@ builder_project_first_save_dialog <- function() {
       class = "builder-project-dialog builder-project-first-save-dialog",
       tags$p(
         class = "builder-project-dialog-lead",
-        "Choose a folder for your datasets and current Builder settings."
+        "Choose a folder for the datasets and current Builder settings."
       ),
       tags$div(
         class = "builder-project-dialog-note",
@@ -113,7 +117,10 @@ builder_project_first_save_dialog <- function() {
           shiny::icon("check")
         ),
         tags$p(
-          "Source files are copied into the project so you can continue later."
+          paste(
+            "Source files are always copied into the project.",
+            "Checked datasets also receive reusable CRB files."
+          )
         )
       )
     ),
@@ -122,6 +129,38 @@ builder_project_first_save_dialog <- function() {
       actionButton(
         "choose_builder_project_folder",
         "Choose folder…",
+        class = "btn btn-primary"
+      )
+    ),
+    easyClose = FALSE,
+    size = "m"
+  )
+}
+
+builder_project_existing_folder_dialog <- function(path) {
+  modalDialog(
+    title = "Update existing project?",
+    builder_project_dialog_content(
+      "This folder already contains a Builder project.",
+      paste(
+        "Its Builder-managed project data will be replaced by the current",
+        "workspace. Other files in the folder will not be changed."
+      ),
+      "exclamation-triangle"
+    ),
+    tags$p(
+      class = "builder-project-dialog-path",
+      tags$code(path)
+    ),
+    footer = tagList(
+      actionButton(
+        "choose_another_builder_project_folder",
+        "Choose another folder",
+        class = "btn btn-outline-secondary"
+      ),
+      actionButton(
+        "confirm_existing_builder_project_folder",
+        "Update project",
         class = "btn btn-primary"
       )
     ),
@@ -175,7 +214,7 @@ builder_project_restore_row_ui <- function(record, root) {
       choices,
       stats::setNames(
         "reuse",
-        "Use ready CRB — fast, view/build only"
+        "Use saved CRB · Fast"
       )
     )
   }
@@ -184,7 +223,7 @@ builder_project_restore_row_ui <- function(record, root) {
       choices,
       stats::setNames(
         "resume",
-        "Load source — continue editing"
+        "Load source · Editable"
       )
     )
   }
@@ -192,7 +231,7 @@ builder_project_restore_row_ui <- function(record, root) {
     choices,
     stats::setNames(
       "skip",
-      "Skip this dataset for this session"
+      "Skip · Not loaded"
     )
   )
   selected <- if (!isTRUE(record$release$included %||% TRUE)) {
@@ -221,11 +260,13 @@ builder_project_restore_row_ui <- function(record, root) {
         status$label
       )
     ),
-    radioButtons(
+    selectInput(
       paste0("project_restore_", record$id),
       label = NULL,
       choices = choices,
-      selected = selected
+      selected = selected,
+      selectize = FALSE,
+      width = "100%"
     )
   )
 }
@@ -233,14 +274,30 @@ builder_project_restore_row_ui <- function(record, root) {
 builder_project_restore_dialog <- function(manifest, root) {
   datasets <- manifest$datasets %||% list()
   modalDialog(
-    title = paste0("Open ", manifest$project$name %||% "Builder project"),
-    tags$p(
-      class = "builder-project-dialog-intro",
-      "Choose what Builder should load into memory. Reusable CRBs stay ",
-      "lightweight until the next release is assembled. ",
-      paste(
-        "Skipped datasets remain saved in the project, but are not loaded",
-        "or included in the next build."
+    title = "Open project",
+    tags$div(
+      class = "builder-project-restore-intro",
+      tags$p(
+        tags$strong(manifest$project$name %||% "Builder project"),
+        " · Choose how each dataset opens."
+      ),
+      tags$div(
+        class = "builder-project-restore-key",
+        tags$span(
+          class = "builder-project-restore-method is-fast",
+          tags$strong("CRB"),
+          "Fast"
+        ),
+        tags$span(
+          class = "builder-project-restore-method",
+          tags$strong("Source"),
+          "Editable"
+        ),
+        tags$span(
+          class = "builder-project-restore-method",
+          tags$strong("Skip"),
+          "Not loaded"
+        )
       )
     ),
     tags$div(
@@ -251,7 +308,7 @@ builder_project_restore_dialog <- function(manifest, root) {
       modalButton("Cancel"),
       actionButton(
         "confirm_builder_project_open",
-        "Open selected datasets",
+        "Open project",
         class = "btn btn-primary"
       )
     ),

@@ -133,8 +133,8 @@ builder_build_options_ui <- function(
     "build_output_mode",
     label = NULL,
     choices = c(
-      "CRB files only" = "crb",
-      "CRB files + Viewer App" = "app"
+      "Viewer app" = "app",
+      "CRB files only" = "crb"
     ),
     selected = if (isTRUE(options$make_app)) "app" else "crb"
   )

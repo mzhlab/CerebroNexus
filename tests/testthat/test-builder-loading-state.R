@@ -37,44 +37,6 @@ test_that("new imports enter the typed queue without loading data", {
   expect_null(entry$settings)
 })
 
-test_that("failed examples stay represented only by their rail card", {
-  ready <- list(list(example = "all_content"))
-  queue <- builder_import_queue(max_active = 2L)
-  queue <- builder_import_add(
-    queue,
-    builder_import_entry(
-      "ds2",
-      "Queued example",
-      list(kind = "example", example = "queued_example")
-    )
-  )
-  queue <- builder_import_add(
-    queue,
-    builder_import_entry(
-      "ds3",
-      "Failed example",
-      list(kind = "example", example = "failed_example")
-    )
-  )
-  queue <- builder_import_transition(queue, "ds2", "reading", 1L)
-  queue <- builder_import_transition(queue, "ds3", "reading", 1L)
-  queue <- builder_import_transition(
-    queue,
-    "ds3",
-    "error",
-    1L,
-    error = "Could not read this object."
-  )
-
-  directory <- builder_example_directory_state(ready, queue)
-
-  expect_setequal(
-    directory$ids,
-    c("all_content", "failed_example")
-  )
-  expect_identical(directory$loading, "queued_example")
-})
-
 test_that("ready import target follows watched and current dataset state", {
   expect_identical(
     names(formals(builder_import_ready_target)),

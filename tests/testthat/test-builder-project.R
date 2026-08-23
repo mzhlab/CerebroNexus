@@ -1502,7 +1502,7 @@ test_that("failed checkpoint enqueue cannot remain marked running", {
   expect_identical(updated$pending_build$finished_at, "2026-08-17T12:00:00Z")
 })
 
-test_that("restore dialog explains the session-only skip action", {
+test_that("restore dialog keeps recovery choices compact", {
   path <- testthat::test_path(
     "..",
     "..",
@@ -1513,15 +1513,10 @@ test_that("restore dialog explains the session-only skip action", {
   )
   source <- paste(readLines(path, warn = FALSE), collapse = "\n")
 
-  expect_match(source, "Skip this dataset for this session", fixed = TRUE)
-  expect_match(source, "Use ready CRB — fast, view/build only", fixed = TRUE)
-  expect_match(source, "Load source — continue editing", fixed = TRUE)
+  expect_match(source, "Skip · Not loaded", fixed = TRUE)
+  expect_match(source, "Use saved CRB · Fast", fixed = TRUE)
+  expect_match(source, "Load source · Editable", fixed = TRUE)
   expect_match(source, "if (status$restorable) {", fixed = TRUE)
-  expect_match(
-    source,
-    "Skipped datasets remain saved in the project",
-    fixed = TRUE
-  )
   expect_false(grepl(
     "Keep in the project, but skip for now",
     source,
@@ -1585,7 +1580,7 @@ test_that("restore choices render descriptive labels and prefer checked CRB reus
   skip_if_not_installed("shiny")
   runtime <- builder_project_test_runtime()
   runtime$tags <- shiny::tags
-  runtime$radioButtons <- shiny::radioButtons
+  runtime$selectInput <- shiny::selectInput
   ui_path <- testthat::test_path(
     "..",
     "..",
@@ -1625,9 +1620,9 @@ test_that("restore choices render descriptive labels and prefer checked CRB reus
     runtime$builder_project_restore_row_ui(record, root)
   )$html
 
-  expect_match(html, "Use ready CRB — fast, view/build only", fixed = TRUE)
-  expect_match(html, "Load source — continue editing", fixed = TRUE)
-  expect_match(html, 'value="reuse" checked="checked"', fixed = TRUE)
+  expect_match(html, "Use saved CRB · Fast", fixed = TRUE)
+  expect_match(html, "Load source · Editable", fixed = TRUE)
+  expect_match(html, '<option value="reuse" selected>', fixed = TRUE)
   expect_match(html, "Checked · CRB ready", fixed = TRUE)
   expect_identical(
     lengths(regmatches(
@@ -1671,6 +1666,23 @@ test_that("project lifecycle capabilities lock only conflicting operations", {
   expect_true(save_capabilities$warn_before_unload)
   expect_false(save_capabilities$mutate_datasets)
   expect_false(save_capabilities$save_project)
+})
+
+test_that("project creation is available only with data", {
+  runtime <- builder_project_test_runtime()
+  empty <- runtime$builder_activity_capabilities(
+    runtime$builder_activity_state()
+  )
+  populated <- runtime$builder_activity_capabilities(
+    runtime$builder_activity_state(has_datasets = TRUE)
+  )
+  importing <- runtime$builder_activity_capabilities(
+    runtime$builder_activity_state(client_imports = 1L, has_datasets = TRUE)
+  )
+
+  expect_false(empty$create_project)
+  expect_true(populated$create_project)
+  expect_true(importing$create_project)
 })
 
 test_that("a project folder can be chosen while another dataset is importing", {
@@ -1736,6 +1748,40 @@ test_that("non-empty project folders require explicit confirmation", {
   )
   expect_match(html, 'id="confirm_builder_project_folder"', fixed = TRUE)
   expect_match(html, 'id="cancel_builder_project_folder"', fixed = TRUE)
+})
+
+test_that("existing Builder projects require update confirmation", {
+  skip_if_not_installed("shiny")
+  runtime <- new.env(parent = globalenv())
+  runtime$tags <- shiny::tags
+  runtime$modalDialog <- shiny::modalDialog
+  runtime$tagList <- shiny::tagList
+  runtime$actionButton <- shiny::actionButton
+  sys.source(
+    testthat::test_path("..", "..", "inst", "builder", "ui", "project.R"),
+    envir = runtime
+  )
+
+  html <- htmltools::renderTags(
+    runtime$builder_project_existing_folder_dialog("/tmp/project")
+  )$html
+
+  expect_match(html, "Update existing project?", fixed = TRUE)
+  expect_match(
+    html,
+    "Other files in the folder will not be changed",
+    fixed = TRUE
+  )
+  expect_match(
+    html,
+    'id="confirm_existing_builder_project_folder"',
+    fixed = TRUE
+  )
+  expect_match(
+    html,
+    'id="choose_another_builder_project_folder"',
+    fixed = TRUE
+  )
 })
 
 test_that("the top bar omits the format capability summary", {
@@ -1840,6 +1886,22 @@ test_that("project location selection, opening, and restore make the page inert"
     expect_true(capabilities$page_inert)
     expect_true(capabilities$warn_before_unload)
     expect_false(capabilities$open_project)
+  }
+})
+
+test_that("Open remains available for switching an idle workspace", {
+  runtime <- builder_project_test_runtime()
+
+  for (phase in c("none", "clean", "dirty", "save_failed", "conflict")) {
+    activity <- runtime$builder_activity_state(
+      project_phase = phase,
+      has_project = !identical(phase, "none"),
+      has_datasets = TRUE
+    )
+    expect_true(
+      runtime$builder_activity_capabilities(activity)$open_project,
+      info = phase
+    )
   }
 })
 

@@ -100,11 +100,9 @@ builder_activity_capabilities <- function(activity) {
   open_safe <- connected &&
     !isTRUE(activity$build_locked) &&
     !importing &&
-    !isTRUE(activity$spatial_dirty) &&
-    ((identical(activity$project_phase, "none") &&
-      !isTRUE(activity$has_project) &&
-      !isTRUE(activity$has_datasets)) ||
-      identical(activity$project_phase, "conflict"))
+    !isTRUE(activity$source_syncing) &&
+    !activity$project_phase %in%
+      c("choosing", "saving", "opening", "restoring", "registering")
   list(
     select_dataset = connected &&
       !activity$project_phase %in%
@@ -171,11 +169,14 @@ builder_activity_reason <- function(activity, operation) {
   if (activity$client_imports > 0L || isTRUE(activity$server_imports)) {
     return("Wait for all dataset imports to finish.")
   }
+  if (isTRUE(activity$source_syncing)) {
+    return("Wait for the current Project source files to finish saving.")
+  }
   switch(
     operation,
     create_project = "Add a dataset before creating a Builder project.",
     save_project = "Add a dataset before saving the project.",
-    open_project = "Open a saved project from an empty Builder session.",
+    open_project = "Wait for the current operation to finish.",
     prepare_crbs = "Save a Builder project before preparing reusable CRBs.",
     "This action is not available right now."
   )
@@ -3668,11 +3669,9 @@ builder_project_last_ui_spatial <- function(
 
 builder_project_last_ui_target <- function(
   last_ui,
-  available_ids,
-  checked_ids = character()
+  available_ids
 ) {
   available_ids <- unique(as.character(available_ids %||% character()))
-  checked_ids <- unique(as.character(checked_ids %||% character()))
   saved_dataset <- if (is.list(last_ui)) last_ui$selected_dataset else NULL
   selected_dataset <- if (
     length(available_ids) &&
@@ -3687,28 +3686,9 @@ builder_project_last_ui_target <- function(
   } else {
     NULL
   }
-  saved_stage <- if (is.list(last_ui)) {
-    as.character(last_ui$stage %||% "configure")
-  } else {
-    "configure"
-  }
-  all_checked <- length(available_ids) > 0L &&
-    all(available_ids %in% checked_ids)
-  stage <- if (
-    length(saved_stage) == 1L &&
-      !is.na(saved_stage) &&
-      saved_stage %in% c("review", "build") &&
-      all_checked
-  ) {
-    ## A build-stage confirmation is intentionally session-only. Reopen its
-    ## frozen plan in Review rather than pretending the old build is confirmed.
-    "review"
-  } else {
-    "configure"
-  }
   list(
     selected_dataset = selected_dataset,
-    stage = stage,
+    stage = if (length(available_ids)) "configure" else "upload",
     spatial = builder_project_last_ui_spatial(
       if (is.list(last_ui)) last_ui$spatial %||% NULL else NULL,
       selected_dataset = selected_dataset

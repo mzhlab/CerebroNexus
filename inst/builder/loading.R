@@ -300,44 +300,6 @@ builder_import_remove <- function(queue, id) {
   queue
 }
 
-builder_example_directory_state <- function(datasets, queue) {
-  .builder_import_queue_assert(queue)
-  ready <- unlist(
-    lapply(datasets, function(entry) {
-      example <- entry$example
-      if (.builder_import_text(example)) example else NULL
-    }),
-    use.names = FALSE
-  )
-  examples <- Filter(
-    function(entry) {
-      identical(entry$source$kind, "example") &&
-        .builder_import_text(entry$source$example)
-    },
-    queue$entries
-  )
-  failed <- unlist(
-    lapply(examples, function(entry) {
-      if (identical(entry$load_state, "error")) entry$source$example else NULL
-    }),
-    use.names = FALSE
-  )
-  loading <- unlist(
-    lapply(examples, function(entry) {
-      if (entry$load_state %in% c("queued", .builder_import_active_states)) {
-        entry$source$example
-      } else {
-        NULL
-      }
-    }),
-    use.names = FALSE
-  )
-  list(
-    ids = unique(as.character(c(ready, failed))),
-    loading = unique(as.character(loading))
-  )
-}
-
 builder_import_ready_target <- function(
   watched,
   current_id,

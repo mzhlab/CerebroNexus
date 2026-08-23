@@ -485,14 +485,25 @@ builder_plan_requires_app <- function(entries) {
   coordinate_transforms <- tryCatch(
     Map(
       function(entry, groups, projections, trajectories, cycle) {
-        identity <- .builder_plan_artifact_identity(
-          entry,
-          groups,
-          projections,
-          entry$settings$analyses %||% character(),
-          trajectories,
-          cycle
-        )
+        saved_identity <- if (
+          identical(entry$load_state %||% "loaded", "artifact_ready")
+        ) {
+          entry$project_artifact$plan_item$artifact_identity %||% NULL
+        } else {
+          NULL
+        }
+        identity <- if (is.list(saved_identity)) {
+          saved_identity
+        } else {
+          .builder_plan_artifact_identity(
+            entry,
+            groups,
+            projections,
+            entry$settings$analyses %||% character(),
+            trajectories,
+            cycle
+          )
+        }
         .builder_plan_coordinate_transform_specs(
           entry$settings$spatial_coordinate_transforms %||% list(),
           identity$spatial_sections %||% character()

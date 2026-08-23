@@ -146,13 +146,13 @@ builder_project_lifecycle_prepare_crb <- function(
   before <- builder_project_lifecycle_manifest(project_dir)
   app$wait_for_js(
     paste0(
-      "document.querySelector('#builder-operation-overlay-actions .btn-primary') !== null && ",
-      "document.querySelector('#builder-operation-overlay-actions .btn-primary')",
-      ".textContent.includes('Prepare checked CRBs')"
+      "(function(){var title=document.getElementById(",
+      "'builder-operation-overlay-title');return !!(title && (",
+      "title.textContent.trim() === 'Preparing reusable CRBs' || ",
+      "title.textContent.trim() === 'Project and CRBs saved'));})()"
     ),
     timeout = 30000
   )
-  app$click(selector = "#builder-operation-overlay-actions .btn-primary")
   app$wait_for_js(
     paste0(
       "(function(){var title=document.getElementById(",

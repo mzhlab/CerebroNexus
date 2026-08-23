@@ -64,6 +64,9 @@ builder_source_release <- function(pending, key) {
 
 builder_source_reserve <- function(entries, pending, kind, value) {
   key <- builder_source_key(kind, value)
+  if (identical(kind, "example")) {
+    return(list(ok = TRUE, code = NULL, key = key, pending = pending))
+  }
   stored <- unlist(
     lapply(entries, function(entry) {
       if (!is.null(entry$example)) {
@@ -516,7 +519,13 @@ builder_dataset_rail_server <- function(
   )
 }
 
-builder_empty_workbench_ui <- function(project_active = FALSE) {
+builder_empty_workbench_ui <- function(
+  project_active = FALSE,
+  dataset_count = 0L,
+  formats = get0("builder_formats", inherits = TRUE),
+  examples = builder_example_directory()
+) {
+  extensions <- unique(unlist(lapply(formats %||% list(), `[[`, "extensions")))
   shiny::tags$section(
     class = "builder-stage builder-empty-state",
     `aria-labelledby` = "builder-empty-title",
@@ -540,7 +549,7 @@ builder_empty_workbench_ui <- function(project_active = FALSE) {
         `aria-hidden` = "true",
         shiny::icon("cloud-upload")
       ),
-      shiny::h3("Drop a dataset here"),
+      shiny::h3("Drop files from this device"),
       shiny::p(
         id = "builder-empty-description",
         "Seurat, SingleCellExperiment, AnnData and supported Builder bundles."
@@ -548,13 +557,53 @@ builder_empty_workbench_ui <- function(project_active = FALSE) {
       shiny::p(
         id = "builder-empty-formats",
         class = "builder-dataset-dropzone-formats",
-        "Large files load in the background."
+        "Files are uploaded through your browser."
       ),
       shiny::tags$span(
         class = "btn btn-primary builder-dropzone-action",
         shiny::icon("file-arrow-up"),
         "Choose files"
       )
+    ),
+    shiny::tags$div(
+      class = "builder-data-sources",
+      shiny::tags$button(
+        id = "choose_local_datasets",
+        class = paste(
+          "builder-data-source action-button",
+          "dataset-file-button"
+        ),
+        type = "button",
+        `data-val` = "0",
+        shiny::span(
+          class = "builder-data-source-icon",
+          `aria-hidden` = "true",
+          shiny::icon("folder-open")
+        ),
+        shiny::span(
+          class = "builder-data-source-copy",
+          shiny::strong("Use files already on the Builder computer"),
+          shiny::tags$small("Choose from Builder host")
+        ),
+        shiny::span(
+          class = "builder-data-source-tags",
+          shiny::span(class = "builder-data-source-tag", "Local"),
+          shiny::span(
+            class = "builder-data-source-tag is-fast",
+            "Fast"
+          )
+        )
+      ),
+      builder_example_buttons_ui(examples),
+      shiny::tags$input(
+        id = "dataset_files",
+        name = "dataset_files",
+        class = "shiny-input-file builder-upload-transport",
+        type = "file",
+        accept = paste0(".", extensions, collapse = ","),
+        hidden = "hidden"
+      ),
+      shiny::uiOutput("add_error")
     ),
     if (isTRUE(project_active)) {
       shiny::tags$div(
@@ -565,70 +614,28 @@ builder_empty_workbench_ui <- function(project_active = FALSE) {
           class = "btn"
         )
       )
-    }
-  )
-}
-
-builder_loading_workbench_ui <- function(entry) {
-  stopifnot(inherits(entry, "builder_import_entry"))
-  failed <- identical(entry$load_state, "error")
-  queued <- identical(entry$load_state, "queued")
-  shiny::tags$section(
-    class = paste(
-      "builder-stage builder-loading-stage",
-      if (failed) "is-error" else NULL
-    ),
-    `aria-live` = "polite",
-    `aria-atomic` = "true",
-    shiny::div(
-      class = "builder-loading-copy",
-      shiny::div(
-        class = "builder-loading-visual",
-        `aria-hidden` = "true"
-      ),
-      shiny::span(
-        class = "builder-loading-kicker",
-        if (failed) "Import stopped" else "Dataset import"
-      ),
-      shiny::h2(if (failed) "Could not load dataset" else "Loading dataset"),
-      shiny::p(class = "builder-loading-name", entry$label),
-      shiny::p(
-        class = "builder-loading-status",
-        if (failed) entry$error else entry$progress_label
-      )
-    ),
-    if (!failed) {
-      shiny::div(
-        class = "builder-loading-progress",
-        role = "progressbar",
-        `aria-label` = entry$progress_label,
-        `aria-valuetext` = entry$progress_label,
-        shiny::span()
-      )
     },
-    if (failed || queued) {
-      shiny::div(
-        class = "builder-action-row builder-loading-actions",
-        if (failed) {
-          shiny::tags$button(
-            type = "button",
-            class = "btn builder-retry-import",
-            `data-import-id` = entry$id,
-            "Retry"
-          )
-        },
-        shiny::tags$button(
-          type = "button",
-          class = "btn btn-remove-soft builder-remove-import",
-          `data-import-id` = entry$id,
-          if (failed) "Remove dataset" else "Remove from queue"
+    builder_stage_footer_ui(
+      paste(
+        dataset_count,
+        if (identical(as.integer(dataset_count), 1L)) {
+          "dataset loaded"
+        } else {
+          "datasets loaded"
+        }
+      ),
+      if (dataset_count > 0L) {
+        shiny::actionButton(
+          "configure_datasets",
+          "Configure datasets →",
+          class = "btn btn-primary"
         )
-      )
-    }
+      }
+    )
   )
 }
 
-builder_import_rail_row_model <- function(entry, current = NULL) {
+builder_import_rail_row_model <- function(entry, index, current = NULL) {
   stopifnot(inherits(entry, "builder_import_entry"))
   detail <- Filter(
     function(value) {
@@ -637,6 +644,7 @@ builder_import_rail_row_model <- function(entry, current = NULL) {
     list(entry$filename, entry$file_type)
   )
   list(
+    index = as.integer(index),
     id = entry$id,
     label = entry$label,
     detail = if (length(detail)) {
@@ -655,6 +663,7 @@ builder_import_rail_row_model <- function(entry, current = NULL) {
 builder_import_rail_row_fingerprint <- function(model) {
   as.character(jsonlite::toJSON(
     unname(model[c(
+      "index",
       "id",
       "label",
       "detail",
@@ -698,6 +707,7 @@ builder_import_rail_row_ui <- function(model) {
         paste("Open loading dataset", model$label)
       },
       `aria-current` = if (model$selected) "true" else NULL,
+      shiny::span(class = "ds-idx", model$index),
       shiny::span(class = "ds-state-dot", `aria-hidden` = "true"),
       shiny::span(
         class = "ds-body",
@@ -776,12 +786,17 @@ builder_import_rail_row_ui <- function(model) {
   )
 }
 
-builder_import_rail_model <- function(entries, current = NULL) {
-  lapply(entries, builder_import_rail_row_model, current = current)
+builder_import_rail_model <- function(entries, current = NULL, offset = 0L) {
+  Map(
+    builder_import_rail_row_model,
+    entries,
+    seq_along(entries) + as.integer(offset),
+    MoreArgs = list(current = current)
+  )
 }
 
-builder_import_rail_patch <- function(entries, current = NULL) {
-  models <- builder_import_rail_model(entries, current)
+builder_import_rail_patch <- function(entries, current = NULL, offset = 0L) {
+  models <- builder_import_rail_model(entries, current, offset)
   list(
     rows = unname(lapply(models, function(model) {
       list(
@@ -880,39 +895,36 @@ builder_dataset_rail_row_ui <- function(model) {
               model$readiness_label
             )
           }
-        )
-      ),
-      shiny::span(
-        class = paste(
-          "ds-ready-summary",
-          if (model$checked) "is-checked" else "needs-review"
         ),
         shiny::span(
           class = paste(
-            "ds-ready-stamp",
+            "ds-ready-summary",
             if (model$checked) "is-checked" else "needs-review"
           ),
-          role = "status",
-          if (model$checked) {
-            "CHECKED"
-          } else {
-            shiny::tagList(
-              shiny::span("NEEDS"),
-              shiny::span("CHECK")
+          shiny::span(
+            class = paste(
+              "ds-ready-stamp",
+              if (model$checked) "is-checked" else "needs-review"
+            ),
+            role = "status",
+            if (model$checked) {
+              "Checked"
+            } else {
+              "Needs check"
+            }
+          ),
+          if (
+            length(model$import_elapsed_ms) == 1L &&
+              !is.na(model$import_elapsed_ms) &&
+              is.finite(model$import_elapsed_ms)
+          ) {
+            shiny::span(
+              class = "builder-load-time",
+              `data-elapsed-ms` = round(model$import_elapsed_ms),
+              sprintf("%.1fs", model$import_elapsed_ms / 1000)
             )
           }
-        ),
-        if (
-          length(model$import_elapsed_ms) == 1L &&
-            !is.na(model$import_elapsed_ms) &&
-            is.finite(model$import_elapsed_ms)
-        ) {
-          shiny::span(
-            class = "builder-load-time",
-            `data-elapsed-ms` = round(model$import_elapsed_ms),
-            sprintf("%.1fs", model$import_elapsed_ms / 1000)
-          )
-        }
+        )
       )
     ),
     shiny::div(
@@ -978,7 +990,7 @@ builder_dataset_rail_ui <- function(
   if (!length(rows)) {
     return(shiny::div(
       class = "rail-empty",
-      "No datasets yet. Add one below."
+      "No datasets yet"
     ))
   }
   shiny::tagList(lapply(rows, builder_dataset_rail_row_ui))
@@ -1071,7 +1083,7 @@ builder_dataset_rail_patch <- function(
     rows = records,
     empty_html = htmltools::renderTags(shiny::div(
       class = "rail-empty",
-      "No datasets yet. Add one below."
+      "No datasets yet"
     ))$html
   )
 }

@@ -2,6 +2,52 @@ builder_stage_contract_source_runtime(environment())
 builder_profile_source_runtime(environment())
 builder_plan_contract_source_runtime(environment())
 
+test_that("the project header yields to a compact sticky workflow", {
+  project_ui <- paste(
+    readLines(
+      builder_profile_inst_path("builder", "ui", "project.R"),
+      warn = FALSE
+    ),
+    collapse = "\n"
+  )
+  builder_js <- paste(
+    readLines(
+      builder_profile_inst_path("builder", "www", "builder.js"),
+      warn = FALSE
+    ),
+    collapse = "\n"
+  )
+
+  expect_false(grepl("Untitled Builder project", project_ui, fixed = TRUE))
+  expect_match(builder_js, "is-workflow-compact", fixed = TRUE)
+  expect_match(
+    builder_js,
+    'workflow.classList.contains("is-workflow-compact")',
+    fixed = TRUE
+  )
+  expect_match(
+    builder_js,
+    "compact ? threshold - 48 : threshold",
+    fixed = TRUE
+  )
+})
+
+test_that("clickable workflow steps keep the same horizontal layout", {
+  components <- paste(
+    readLines(
+      builder_profile_inst_path("builder", "www", "builder.components.css"),
+      warn = FALSE
+    ),
+    collapse = "\n"
+  )
+
+  expect_match(
+    components,
+    ".builder-workflow-progress .builder-workflow-stage-link > .action-label",
+    fixed = TRUE
+  )
+})
+
 builder_stage_finished_output_preflight <- function() {
   list(
     is_alive = function() FALSE,
@@ -31,6 +77,23 @@ test_that("automatic dataset review advance requests top-of-workbench focus", {
 
   expect_match(review, '"builder_focus_dataset_start"', fixed = TRUE)
   expect_match(review, "list(dataset = target)", fixed = TRUE)
+})
+
+test_that("Configure renders Extras before the final Views content", {
+  review <- paste(
+    readLines(
+      builder_profile_inst_path("builder", "server", "review.R"),
+      warn = FALSE
+    ),
+    collapse = "\n"
+  )
+
+  extras_stage <- regexpr('builder_enhance_stage_ui(', review, fixed = TRUE)
+  views_stage <- regexpr('builder_views_stage_ui(', review, fixed = TRUE)
+
+  expect_true(extras_stage[[1L]] > 0L)
+  expect_true(views_stage[[1L]] > extras_stage[[1L]])
+  expect_false(grepl("builder-configure-tabs", review, fixed = TRUE))
 })
 
 test_that("checked datasets react to pending coordinate drafts", {
@@ -98,6 +161,16 @@ test_that("Builder shell and workflow UI separate all four stages", {
   expect_match(shell, 'uiOutput("workflow_progress")', fixed = TRUE)
   expect_match(shell, 'class = "topbar builder-project-header"', fixed = TRUE)
   expect_match(shell, 'class = "builder-project-brand"', fixed = TRUE)
+  toolbar <- paste(
+    readLines(
+      builder_profile_inst_path("builder", "ui", "project.R"),
+      warn = FALSE
+    ),
+    collapse = "\n"
+  )
+  expect_match(toolbar, 'uiOutput("project_status")', fixed = TRUE)
+  expect_match(toolbar, 'span("Save")', fixed = TRUE)
+  expect_match(toolbar, 'shiny::icon("floppy-disk")', fixed = TRUE)
   expect_match(shell, 'class = "shell builder-shell"', fixed = TRUE)
   expect_match(shell, 'id = "builder-workspace"', fixed = TRUE)
   expect_match(shell, 'file.path("ui", "workflow.R")', fixed = TRUE)
@@ -557,11 +630,11 @@ test_that("workflow server owns loading and Configure rendering", {
       settings = list(name = "Dataset A")
     )))
     session$flushReact()
-    expect_identical(workflow()$stage, "configure")
+    expect_identical(workflow()$stage, "upload")
 
     session$setInputs(workflow_stage_review = 1L)
     session$flushReact()
-    expect_identical(workflow()$stage, "configure")
+    expect_identical(workflow()$stage, "upload")
 
     session$setInputs(workflow_stage_upload = 1L)
     session$flushReact()
@@ -581,7 +654,11 @@ test_that("workflow server owns loading and Configure rendering", {
     ),
     collapse = "\n"
   )
-  expect_match(workflow_server, "builder_loading_workbench_ui", fixed = TRUE)
+  expect_false(grepl(
+    "builder_loading_workbench_ui",
+    workflow_server,
+    fixed = TRUE
+  ))
   expect_match(workflow_server, "render_configure_workbench", fixed = TRUE)
   expect_match(workflow_server, "render_review_workbench", fixed = TRUE)
   expect_match(workflow_server, "render_build_workbench", fixed = TRUE)

@@ -725,6 +725,27 @@ test_that("Builder defines semantic action and measure roles", {
   )
 })
 
+test_that("Builder interaction roles use the amber palette", {
+  builder <- style_contract_tokens(
+    style_contract_path("builder", "www", "builder.tokens.css")
+  )
+  expected <- c(
+    "--builder-action" = "#c9500b",
+    "--builder-action-hover" = "#9a3412",
+    "--builder-action-active" = "#7c2d12",
+    "--builder-accent-strong" = "#65230f",
+    "--builder-focus-ring" = "var(--c-amber-600)",
+    "--builder-selection-bg" = "var(--builder-action)",
+    "--builder-rail-selected-bg" = "var(--c-amber-50)",
+    "--builder-rail-selected-marker" = "var(--c-amber)",
+    "--builder-rail-hover-bg" = "#fffaf6",
+    "--builder-rail-progress-bg" = "var(--c-amber-50)",
+    "--builder-rail-progress-fg" = "var(--c-amber)"
+  )
+
+  expect_identical(unname(builder[names(expected)]), unname(expected))
+})
+
 test_that("Builder strong accent preserves all legacy amber-800 uses", {
   css <- style_contract_builder_css()
   selectors <- c(
@@ -792,7 +813,6 @@ test_that("Builder layered stylesheets own their declared responsibilities", {
     ".btn" = "components",
     ".builder-dialog" = "components",
     ".builder-file-picker" = "components",
-    ".builder-loading-stage" = "components",
     ".enhance-module" = "features",
     ".builder-viewer-card" = "features",
     ".spatial-alignment-layout" = "features",
@@ -973,4 +993,14 @@ test_that("Builder enhances every Selectize multi-select consistently", {
     fixed = TRUE
   )
   expect_match(css, "width: max-content", fixed = TRUE)
+})
+
+test_that("Spatial alignment follows its content height", {
+  css <- style_contract_builder_css("builder.features.css")
+
+  expect_false(grepl(
+    ".spatial-alignment-workbench:has(> .builder-viewer-spatial-alignment[open])",
+    css,
+    fixed = TRUE
+  ))
 })

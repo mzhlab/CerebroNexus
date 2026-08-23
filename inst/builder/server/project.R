@@ -1028,8 +1028,7 @@ restore_builder_project_last_ui <- function(manifest) {
   ids <- vapply(isolate(sets()), `[[`, character(1), "id")
   target <- builder_project_last_ui_target(
     manifest$last_ui %||% list(),
-    available_ids = ids,
-    checked_ids = isolate(checked_dataset_ids())
+    available_ids = ids
   )
   if (!is.null(target$selected_dataset)) {
     current(target$selected_dataset)
@@ -1039,11 +1038,7 @@ restore_builder_project_last_ui <- function(manifest) {
   if (!is.null(saved_initial) && !saved_initial %in% ids) {
     build_initial_dataset(NULL)
   }
-  if (identical(target$stage, "review")) {
-    navigate_workflow_stage("review")
-  } else {
-    navigate_workflow_stage("configure")
-  }
+  navigate_workflow_stage(target$stage)
   invisible(target)
 }
 
@@ -1470,18 +1465,6 @@ output$project_status <- renderUI({
 })
 
 observe({
-  shiny::updateActionButton(
-    session,
-    "save_builder_project",
-    label = if (is.null(builder_project())) {
-      "Create project…"
-    } else {
-      "Save project"
-    }
-  )
-})
-
-observe({
   project <- builder_project()
   entries <- sets()
   if (is.null(project) || !length(entries)) {
@@ -1571,12 +1554,6 @@ builder_project_folder_available <- function(folder) {
   if (inherits(folder, "condition")) {
     return(show_builder_project_folder_error(conditionMessage(folder)))
   }
-  if (identical(folder$kind, "project")) {
-    return(show_builder_project_folder_error(
-      "This folder already contains a Builder project. Use Open project instead.",
-      type = "warning"
-    ))
-  }
   conflicts <- folder$managed_conflicts %||% character()
   if (length(conflicts)) {
     return(show_builder_project_folder_error(paste0(
@@ -1588,9 +1565,15 @@ builder_project_folder_available <- function(folder) {
   TRUE
 }
 
-create_builder_project_in_folder <- function(folder) {
+create_builder_project_in_folder <- function(folder, existing = NULL) {
   manifest_path <- builder_project_manifest_path(folder$root)
   manifest <- builder_project_new_manifest(folder$root)
+  if (is.list(existing) && is.list(existing$project)) {
+    manifest$project$id <- existing$project$id
+    manifest$project$name <- existing$project$name
+    manifest$project$revision <- existing$project$revision
+    manifest$project$created_at <- existing$project$created_at
+  }
   builder_project_pending_folder(NULL)
   builder_project(list(
     root = folder$root,
@@ -1600,7 +1583,7 @@ create_builder_project_in_folder <- function(folder) {
   ))
   builder_project_skipped_ids(character())
   shiny::removeModal()
-  request_builder_project_save(show_actions = FALSE, materialize = TRUE)
+  request_builder_project_save(show_actions = TRUE, materialize = TRUE)
   invisible(TRUE)
 }
 
@@ -1608,6 +1591,11 @@ select_builder_project_folder <- function(path) {
   folder <- tryCatch(builder_project_folder_state(path), error = identity)
   if (!isTRUE(builder_project_folder_available(folder))) {
     return(invisible(FALSE))
+  }
+  if (identical(folder$kind, "project")) {
+    builder_project_pending_folder(path)
+    shiny::showModal(builder_project_existing_folder_dialog(path))
+    return(invisible(TRUE))
   }
   if (identical(folder$kind, "nonempty")) {
     builder_project_pending_folder(path)
@@ -1688,6 +1676,43 @@ observeEvent(input$confirm_builder_project_folder, {
     return()
   }
   create_builder_project_in_folder(folder)
+})
+
+observeEvent(input$confirm_existing_builder_project_folder, {
+  if (!builder_operation_allowed("create_project")) {
+    return()
+  }
+  path <- isolate(builder_project_pending_folder())
+  if (is.null(path)) {
+    return()
+  }
+  folder <- tryCatch(builder_project_folder_state(path), error = identity)
+  if (
+    inherits(folder, "condition") ||
+      !identical(folder$kind %||% NULL, "project")
+  ) {
+    builder_project_pending_folder(NULL)
+    shiny::removeModal()
+    show_builder_project_folder_error(
+      if (inherits(folder, "condition")) {
+        conditionMessage(folder)
+      } else {
+        "The selected folder is no longer a Builder project."
+      }
+    )
+    return()
+  }
+  existing <- tryCatch(
+    builder_project_read(builder_project_manifest_path(folder$root)),
+    error = identity
+  )
+  if (inherits(existing, "condition")) {
+    builder_project_pending_folder(NULL)
+    shiny::removeModal()
+    show_builder_project_folder_error(conditionMessage(existing))
+    return()
+  }
+  create_builder_project_in_folder(folder, existing = existing)
 })
 
 observeEvent(input$choose_another_builder_project_folder, {
@@ -1854,7 +1879,10 @@ start_builder_project_record_load <- function(record, root) {
 observeEvent(input$confirm_builder_project_open, {
   pending <- isolate(builder_project_restore())
   operation <- isolate(builder_project_operation_phase())
-  if (is.null(pending) || !operation %in% c("idle", "conflict")) {
+  if (
+    is.null(pending) ||
+      !operation %in% c("idle", "save_failed", "conflict")
+  ) {
     return()
   }
   manifest <- pending$manifest
@@ -1978,6 +2006,13 @@ observe({
   }
   entries <- batch$entries
   pending <- batch$pending
+  resumed_ids <- names(Filter(
+    function(item) {
+      record <- item$record %||% list()
+      identical(record$runtime_restore_target %||% NULL, "configure")
+    },
+    batch$restored
+  ))
   marks <- isolate(dataset_check_marks())
   for (id in restored_ids) {
     restored <- batch$restored[[id]]$entry
@@ -2083,6 +2118,10 @@ observe({
     remaining = length(pending)
   ))
   restored_last_ui <- isolate(builder_project())$manifest$last_ui
+  if (length(resumed_ids)) {
+    restored_last_ui$stage <- "configure"
+    restored_last_ui$selected_dataset <- resumed_ids[[1L]]
+  }
   saved <- save_builder_project_state(
     show_actions = FALSE,
     materialize = FALSE,
@@ -2168,6 +2207,7 @@ observeEvent(input$project_resume_current_source, {
   }
   pending <- isolate(builder_project_pending_entries())
   previous_pending <- pending[[id]] %||% NULL
+  record$runtime_restore_target <- "configure"
   pending[[id]] <- record
   builder_project_pending_entries(pending)
   started <- tryCatch(

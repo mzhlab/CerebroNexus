@@ -870,28 +870,39 @@ render_configure_workbench <- function() {
       }
     )
   )
+  enhance_model <- builder_enhance_model(
+    id = entry$id,
+    profile = entry$profile,
+    state = if (inherits(state, "try-error")) list() else state,
+    settings = entry$settings,
+    modules = list(),
+    active_section = shiny::isolate(active_slice()),
+    active_image = shiny::isolate(alignment_server$active_image())
+  )
   div(
     class = "builder-stage builder-stage-shell builder-stage-configure",
     `data-workflow-stage` = "configure",
     builder_stage_header_ui(
       "Configure",
-      "Configure this dataset",
+      paste("Configure", entry$settings$name %||% entry$id),
       "Only relevant settings are shown."
     ),
-    uiOutput("inspect_stage"),
+    tags$details(
+      class = "builder-configure-inspect",
+      tags$summary("Dataset summary"),
+      uiOutput("inspect_stage")
+    ),
     builder_core_stage_ui("core", core_model),
     builder_enhance_stage_ui(
       "enhance",
-      builder_enhance_model(
-        id = entry$id,
-        profile = entry$profile,
-        state = if (inherits(state, "try-error")) list() else state,
-        settings = entry$settings,
-        modules = list(),
-        active_section = shiny::isolate(active_slice()),
-        active_image = shiny::isolate(alignment_server$active_image())
-      ),
-      dynamic_modules = TRUE
+      enhance_model,
+      dynamic_modules = TRUE,
+      include_spatial = FALSE
+    ),
+    builder_views_stage_ui(
+      "core",
+      core_model,
+      builder_spatial_stage_ui("enhance", enhance_model)
     ),
     uiOutput("configure_actions")
   )

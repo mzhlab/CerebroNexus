@@ -20,13 +20,17 @@ builder_rail_source <- function(file) {
   }
 }
 
-test_that("the dataset rail presents a button and single-file transport", {
+test_that("the Data page presents the real dataset inputs", {
   app <- readLines(
     builder_profile_inst_path("builder", "app.R"),
     warn = FALSE
   )
+  data_page <- readLines(
+    builder_profile_inst_path("builder", "ui", "dataset_rail.R"),
+    warn = FALSE
+  )
   rail <- paste(
-    app[seq_len(grep("server <- function", app)[1L] - 1L)],
+    c(app[seq_len(grep("server <- function", app)[1L] - 1L)], data_page),
     collapse = "\n"
   )
 
@@ -37,20 +41,21 @@ test_that("the dataset rail presents a button and single-file transport", {
   expect_match(rail, 'hidden = "hidden"', fixed = TRUE)
   expect_match(rail, "tags$button(", fixed = TRUE)
   expect_match(rail, 'id = "choose_local_datasets"', fixed = TRUE)
-  expect_match(rail, 'id = "builder_upload_datasets"', fixed = TRUE)
-  expect_match(
-    rail,
-    'class = "dataset-file-control builder-file-picker builder-file-picker--sidebar"',
-    fixed = TRUE
-  )
+  expect_match(rail, 'class = "builder-data-sources"', fixed = TRUE)
   expect_match(rail, "builder-upload-transport", fixed = TRUE)
   expect_match(rail, "builder-file-trigger", fixed = TRUE)
-  expect_match(rail, '"Choose local datasets…"', fixed = TRUE)
-  expect_match(rail, '"Upload through browser…"', fixed = TRUE)
+  expect_match(
+    rail,
+    '"Use files already on the Builder computer"',
+    fixed = TRUE
+  )
+  expect_match(rail, '"Drop files from this device"', fixed = TRUE)
+  expect_false(grepl('id = "builder_upload_datasets"', rail, fixed = TRUE))
   expect_false(grepl("fileInput(", rail, fixed = TRUE))
   expect_match(rail, "builder_example_buttons_ui(", fixed = TRUE)
   expect_false(grepl('uiOutput("example_buttons")', rail, fixed = TRUE))
   expect_false(grepl('uiOutput("browser_panel")', rail, fixed = TRUE))
+  expect_false(grepl("shiny::small(", rail, fixed = TRUE))
 })
 
 test_that("example directory is static and does not load objects for first paint", {
@@ -82,8 +87,9 @@ test_that("static example cards carry stable IDs and loading metadata", {
 
   expect_match(html, 'data-ex="all_content"', fixed = TRUE)
   expect_match(html, 'data-label="All content"', fixed = TRUE)
-  expect_match(html, 'class="btn example-btn"', fixed = TRUE)
-  expect_match(html, "builder-example-directory", fixed = TRUE)
+  expect_match(html, 'class="builder-data-source example-btn"', fixed = TRUE)
+  expect_match(html, "Synthetic Seurat with three patients", fixed = TRUE)
+  expect_false(grepl("builder-example-directory", html, fixed = TRUE))
 })
 
 builder_rail_source("state.R")
@@ -95,7 +101,7 @@ test_that("the empty workspace presents the first guided step", {
 
   expect_match(html, "Step 1 of 4", fixed = TRUE)
   expect_match(html, "Add your data", fixed = TRUE)
-  expect_match(html, "Drop a dataset here", fixed = TRUE)
+  expect_match(html, "Drop files from this device", fixed = TRUE)
   expect_match(html, "Large files load in the background", fixed = TRUE)
   expect_match(html, "Choose files", fixed = TRUE)
 })
@@ -441,7 +447,7 @@ if (builder_rail_api_available) {
     }
   })
 
-  test_that("pending sources reject repeats and release only after failure", {
+  test_that("files reject repeats while examples remain reusable", {
     pending <- character()
     first <- builder_source_reserve(list(), pending, "example", "pbmc_small")
     expect_true(first$ok)
@@ -451,7 +457,8 @@ if (builder_rail_api_available) {
       "example",
       "pbmc_small"
     )
-    expect_false(repeated$ok)
+    expect_true(repeated$ok)
+    expect_length(repeated$pending, 0L)
 
     path <- file.path(tempdir(), "source", "..", "dataset.rds")
     file_first <- builder_source_reserve(list(), pending, "file", path)
@@ -480,8 +487,8 @@ if (builder_rail_api_available) {
       "example",
       "pbmc_small"
     )
-    expect_false(handed_off$ok)
-    expect_identical(handed_off$code, "source_in_store")
+    expect_true(handed_off$ok)
+    expect_null(handed_off$code)
   })
 
   test_that("snapshot lifecycle releases aliases and identities exactly once", {
@@ -689,6 +696,7 @@ if (builder_rail_api_available) {
 
     html <- as.character(builder_dataset_rail_row_ui(base))
     expect_match(html, 'data-rail-fingerprint="', fixed = TRUE)
+    expect_match(html, 'class="ds-idx">1<', fixed = TRUE)
   })
 
   test_that("ready rail patch is an ordered authoritative snapshot", {
@@ -896,14 +904,25 @@ if (builder_rail_api_available) {
       "",
       text
     )
+    rail <- paste(
+      rail,
+      paste(
+        readLines(
+          builder_profile_inst_path("builder", "ui", "dataset_rail.R"),
+          warn = FALSE
+        ),
+        collapse = "\n"
+      ),
+      sep = "\n"
+    )
 
     expect_match(rail, "tags$input(", fixed = TRUE)
     expect_match(rail, 'type = "file"', fixed = TRUE)
     expect_false(grepl('multiple = "multiple"', rail, fixed = TRUE))
     expect_match(rail, 'id = "choose_local_datasets"', fixed = TRUE)
-    expect_match(rail, 'id = "builder_upload_datasets"', fixed = TRUE)
+    expect_false(grepl('id = "builder_upload_datasets"', rail, fixed = TRUE))
     expect_match(rail, 'id = "ds_client_import_queue"', fixed = TRUE)
-    expect_match(rail, "builder_example_buttons_ui()", fixed = TRUE)
+    expect_match(rail, "builder_example_buttons_ui(examples)", fixed = TRUE)
     expect_false(grepl("browse_open", text, fixed = TRUE))
     expect_false(grepl("browse_dir", text, fixed = TRUE))
     expect_false(grepl("browser_panel", text, fixed = TRUE))
@@ -1224,8 +1243,8 @@ if (builder_rail_api_available) {
       protocol(app_env$builder_request_protocol("worker-reservation"))
 
       expect_true(start_load("example", "all_content", "PBMC"))
-      expect_false(start_load("example", "all_content", "PBMC"))
-      expect_length(pending_sources(), 1L)
+      expect_true(start_load("example", "all_content", "PBMC"))
+      expect_length(pending_sources(), 0L)
       pending_sources(builder_source_key("example", "all_content"))
       worker(NULL)
       worker_available(FALSE)
@@ -1247,7 +1266,7 @@ if (builder_rail_api_available) {
       loaded <- builder_rail_entry("loaded")
       loaded$example <- "all_content"
       sets(list(loaded))
-      expect_false(start_load("example", "all_content", "PBMC"))
+      expect_true(start_load("example", "all_content", "PBMC"))
     })
   })
 

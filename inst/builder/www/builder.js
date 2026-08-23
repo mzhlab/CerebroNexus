@@ -26,7 +26,6 @@
   var lastAnnouncement = "";
   var observedPrimaryAction = null;
   var firstRunKey = "cerebro-builder-first-run-v1";
-  var exampleMessageHandlerRegistered = false;
   var buildDialogHandlerRegistered = false;
   var viewerGroupHandlerRegistered = false;
   var viewerProjectionHandlerRegistered = false;
@@ -68,6 +67,7 @@
   var dynamicContentEnhancementFrame = null;
   var dynamicContentEnhancementRoots = new Set();
   var spatialScrollbarFrame = null;
+  var workflowCompactFrame = null;
   var observedStages = new Set();
   var datasetLoadTimeTimer = null;
   var builderActivityState = {
@@ -95,6 +95,24 @@
     warn_before_unload: false,
     page_inert: false,
   };
+
+  function scheduleWorkflowCompactState() {
+    if (workflowCompactFrame !== null) return;
+    workflowCompactFrame = window.requestAnimationFrame(function () {
+      workflowCompactFrame = null;
+      var workflow = document.getElementById("workflow_progress");
+      var topbar = document.querySelector(".topbar");
+      if (!workflow || !topbar) return;
+      var threshold = topbar.offsetTop + topbar.offsetHeight;
+      var compact = workflow.classList.contains("is-workflow-compact");
+      var nextCompact = window.scrollY >= (
+        compact ? threshold - 48 : threshold
+      );
+      if (nextCompact === compact) return;
+      workflow.classList.toggle("is-workflow-compact", nextCompact);
+      syncWorkflowProgressHeight();
+    });
+  }
   var builderProjectSaveResult = null;
   var builderProjectSaveResultOpen = false;
   var builderProjectCrbDialogActive = false;
@@ -471,13 +489,8 @@
         },
       });
     } else if (remaining > 0) {
-      buttons.push({
-        label: "Prepare checked CRBs",
-        primary: true,
-        action: function () {
-          startBuilderProjectCrbRequest(remaining);
-        },
-      });
+      startBuilderProjectCrbRequest(remaining);
+      return;
     }
     setBuilderOperationActions(buttons);
     var firstButton = elements.actions && elements.actions.querySelector("button");
@@ -617,6 +630,8 @@
       "#enhance-choose_local_tables",
       ".builder-file-trigger",
       ".example-btn",
+      ".builder-rail-add-browser",
+      ".builder-rail-add-local",
       ".builder-reorder",
       ".builder-drop",
       ".builder-retry-import",
@@ -764,14 +779,6 @@
     matchingDynamicElements(roots, ".builder-pick").forEach(function (control) {
       setActivityDisabled(control, !activityCapability("select_dataset"));
     });
-
-    var save = document.getElementById("save_builder_project");
-    if (save) {
-      var saveLabel = builderActivityState.has_project === true
-        ? "Save project"
-        : "Create project…";
-      if (save.textContent !== saveLabel) save.textContent = saveLabel;
-    }
 
     var workspaceLocked = !activityCapability("edit_dataset");
     matchingDynamicElements(
@@ -1365,60 +1372,6 @@
     if (dismissed) guide.hidden = true;
   }
 
-  function clientLoadingStage(label, status) {
-    var section = document.createElement("section");
-    section.className = "builder-stage builder-loading-stage is-client";
-    section.setAttribute("aria-live", "polite");
-    section.setAttribute("aria-atomic", "true");
-    var copy = document.createElement("div");
-    copy.className = "builder-loading-copy";
-    var visual = document.createElement("div");
-    visual.className = "builder-loading-visual";
-    visual.setAttribute("aria-hidden", "true");
-    var kicker = document.createElement("span");
-    kicker.className = "builder-loading-kicker";
-    kicker.textContent = "Dataset import";
-    var title = document.createElement("h2");
-    title.textContent = "Loading dataset";
-    var name = document.createElement("p");
-    name.className = "builder-loading-name";
-    name.textContent = label;
-    var state = document.createElement("p");
-    state.className = "builder-loading-status";
-    state.textContent = status;
-    copy.appendChild(visual);
-    copy.appendChild(kicker);
-    copy.appendChild(title);
-    copy.appendChild(name);
-    copy.appendChild(state);
-    var progress = document.createElement("div");
-    progress.className = "builder-loading-progress";
-    progress.setAttribute("role", "progressbar");
-    progress.setAttribute("aria-label", status);
-    progress.setAttribute("aria-valuetext", status);
-    progress.appendChild(document.createElement("span"));
-    section.appendChild(copy);
-    section.appendChild(progress);
-    return section;
-  }
-
-  function showClientLoadingWorkbench(label, status) {
-    var workbench = document.getElementById("workbench");
-    var list = document.getElementById("ds_list");
-    if (!workbench || !list) return;
-    var hasReadyDataset = list.querySelector(".ds:not(.ds--import)");
-    if (hasReadyDataset && !workbench.querySelector(".builder-empty-state")) return;
-    workbench.replaceChildren(clientLoadingStage(label, status));
-  }
-
-  function setClientLoadingPaused(paused) {
-    var stage = document.querySelector(".builder-loading-stage.is-client");
-    if (!stage) return;
-    stage.classList.toggle("is-paused", paused);
-    var status = stage.querySelector(".builder-loading-status");
-    if (paused && status) status.textContent = "Connection lost. Waiting to reconnect…";
-  }
-
   function openDatasetPicker() {
     if (datasetMutationsLocked || !activityCapability("add_dataset")) return;
     var picker = document.createElement("input");
@@ -1495,12 +1448,19 @@
     var container = document.getElementById("ds_client_import_queue");
     if (!container) return;
     container.replaceChildren();
+    var sequence = document.querySelectorAll(
+      "#ds_ready_list > .ds, #ds_import_list .ds"
+    ).length;
     clientImportQueue.concat(clientImportFailures).forEach(function (entry, index) {
       if (entry.serverId && entry === activeClientImport) return;
+      sequence += 1;
       var row = document.createElement("div");
       row.className = "ds ds--import ds--client-upload";
       row.dataset.clientImportId = entry.clientId;
       row.dataset.loadState = entry.state;
+      var ordinal = document.createElement("span");
+      ordinal.className = "ds-idx";
+      ordinal.textContent = String(sequence);
       var body = document.createElement("span");
       body.className = "ds-body";
       var name = document.createElement("span");
@@ -1511,6 +1471,7 @@
       status.textContent = clientQueueStatus(entry, index);
       body.appendChild(name);
       body.appendChild(status);
+      row.appendChild(ordinal);
       row.appendChild(body);
       var dot = document.createElement("span");
       dot.className = "ds-state-dot";
@@ -1586,7 +1547,6 @@
       return;
     }
     renderClientImportQueue();
-    showClientLoadingWorkbench(entry.name, "Uploading selected file…");
     transport.dispatchEvent(new Event("change", { bubbles: true }));
     entry.state = "awaiting_accept";
     renderClientImportQueue();
@@ -1595,7 +1555,6 @@
   function dispatchFileImport(entry) {
     entry.state = "awaiting_dispatch";
     renderClientImportQueue();
-    showClientLoadingWorkbench(entry.name, "Preparing upload…");
     send("builder_client_import_dispatch", {
       client_id: entry.clientId,
       name: entry.name,
@@ -1614,7 +1573,6 @@
   function dispatchExampleImport(entry) {
     entry.state = "awaiting_accept";
     renderClientImportQueue();
-    showClientLoadingWorkbench(entry.name, "Waiting to load…");
     send("builder_import_example", {
       example: entry.exampleId,
       client_id: entry.clientId,
@@ -3896,8 +3854,17 @@
       return;
     }
 
-    if (target.closest("#builder_upload_datasets")) {
+    var railBrowser = target.closest(".builder-rail-add-browser");
+    if (railBrowser) {
       openDatasetPicker();
+      return;
+    }
+
+    var railLocal = target.closest(".builder-rail-add-local");
+    if (railLocal) {
+      if (!datasetMutationsLocked && activityCapability("add_dataset")) {
+        send("choose_local_datasets", Date.now());
+      }
       return;
     }
 
@@ -3956,13 +3923,9 @@
       (event.key === "Enter" || event.key === " ")
     ) {
       event.preventDefault();
-      if (fileTrigger.id === "builder_upload_datasets") {
-        openDatasetPicker();
-      } else {
-        var targetId = fileTrigger.getAttribute("for");
-        var fileInput = targetId ? document.getElementById(targetId) : null;
-        if (fileInput) fileInput.click();
-      }
+      var targetId = fileTrigger.getAttribute("for");
+      var fileInput = targetId ? document.getElementById(targetId) : null;
+      if (fileInput) fileInput.click();
       return;
     }
     var enhanceCheckbox = event.target.closest(".enhance-module-checkbox");
@@ -4098,36 +4061,6 @@
       return;
     }
   });
-
-  function messageValues(value) {
-    if (value === null || typeof value === "undefined" || value === "") return [];
-    return Array.isArray(value) ? value : [value];
-  }
-
-  function updateExampleDirectory(message) {
-    var used = new Set(messageValues(message && message.ids));
-    var loading = new Set(messageValues(message && message.loading));
-    document.querySelectorAll(".example-btn[data-ex]").forEach(function (el) {
-      var id = el.dataset.ex;
-      var isLoading = loading.has(id);
-      var taken = used.has(id) && !isLoading;
-      var label = el.querySelector(".ex-label");
-      el.classList.toggle("is-loading", isLoading);
-      el.classList.toggle("is-taken", taken);
-      el.disabled = taken || isLoading;
-      el.setAttribute("aria-disabled", taken || isLoading ? "true" : "false");
-      if (label) label.textContent = isLoading ? "Loading…" : el.dataset.label;
-    });
-  }
-
-  function registerExampleMessageHandler() {
-    if (exampleMessageHandlerRegistered || !window.Shiny) return;
-    window.Shiny.addCustomMessageHandler(
-      "builder_used_examples",
-      updateExampleDirectory
-    );
-    exampleMessageHandlerRegistered = true;
-  }
 
   function focusDatasetStart(message) {
     var dataset = message && message.dataset;
@@ -4313,8 +4246,12 @@
           });
         } else {
           var topbar = document.querySelector(".topbar");
-          var topbarBottom = topbar ? topbar.getBoundingClientRect().bottom : 0;
-          heading.style.scrollMarginTop = Math.max(0, topbarBottom + 12) + "px";
+          var workflowBar = document.querySelector("#workflow_progress");
+          var stickyBottom = Math.max(
+            topbar ? topbar.getBoundingClientRect().bottom : 0,
+            workflowBar ? workflowBar.getBoundingClientRect().bottom : 0
+          );
+          heading.style.scrollMarginTop = Math.max(0, stickyBottom + 12) + "px";
           heading.scrollIntoView({
             block: "start",
             behavior: reducedMotion.matches ? "auto" : "smooth",
@@ -4478,7 +4415,6 @@
   function requestClientImportSync() {
     uploadConnectionReady = true;
     importSyncPending = true;
-    registerExampleMessageHandler();
     registerBuildDialogHandler();
     registerClientImportHandlers();
     registerViewerGroupHandler();
@@ -4491,7 +4427,6 @@
 
   document.addEventListener("shiny:connected", function () {
     builderConnectionReady = true;
-    setClientLoadingPaused(false);
     requestClientImportSync();
     reportClientImportQueueState();
     send("builder_client_connection", {
@@ -4513,7 +4448,6 @@
       entry.stateBeforePause = entry.state;
       entry.state = "paused";
     });
-    setClientLoadingPaused(true);
     renderClientImportQueue();
     scheduleStatusAnnouncement(
       "Connection lost. Waiting to restore the import state."
@@ -4535,29 +4469,10 @@
     event.returnValue = "";
   });
   function initializeBuilder() {
-    registerExampleMessageHandler();
     registerBuildDialogHandler();
     registerClientImportHandlers();
     registerViewerGroupHandler();
     registerViewerContentHandlers();
-
-    var datasetTrigger = document.getElementById("builder_upload_datasets");
-    if (datasetTrigger) {
-      datasetTrigger.addEventListener("dragover", function (event) {
-        event.preventDefault();
-        if (!activityCapability("add_dataset")) return;
-        datasetTrigger.classList.add("is-drag-over");
-      });
-      datasetTrigger.addEventListener("dragleave", function () {
-        datasetTrigger.classList.remove("is-drag-over");
-      });
-      datasetTrigger.addEventListener("drop", function (event) {
-        event.preventDefault();
-        datasetTrigger.classList.remove("is-drag-over");
-        if (!activityCapability("add_dataset")) return;
-        enqueueClientFiles(event.dataTransfer && event.dataTransfer.files);
-      });
-    }
 
     new MutationObserver(handleDynamicContentMutations).observe(document.documentElement, {
       childList: true,
@@ -4574,10 +4489,13 @@
     updateMotionDuration();
     window.addEventListener("resize", scheduleSpatialAlignmentScrollbars, { passive: true });
     window.addEventListener("scroll", scheduleSpatialAlignmentScrollbars, { passive: true });
+    window.addEventListener("resize", scheduleWorkflowCompactState, { passive: true });
+    window.addEventListener("scroll", scheduleWorkflowCompactState, { passive: true });
     ensureLiveRegion();
     enhanceDynamicContent();
     updateDatasetLoadTimes();
     scheduleDatasetLoadTimeUpdates();
+    scheduleWorkflowCompactState();
   }
 
   if (document.readyState === "loading") {
