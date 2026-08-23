@@ -32,16 +32,16 @@ output[["expression_projection_additional_parameters_UI"]] <- renderUI({
     sliderInput(
       "expression_projection_percentage_cells_to_show",
       label = "Show % of cells",
-      min = preferences[["gene_expression_plot_percentage_cells_to_show"]][[
+      min = preferences[["projection_plot_percentage_cells_to_show"]][[
         "min"
       ]],
-      max = preferences[["gene_expression_plot_percentage_cells_to_show"]][[
+      max = preferences[["projection_plot_percentage_cells_to_show"]][[
         "max"
       ]],
-      step = preferences[["gene_expression_plot_percentage_cells_to_show"]][[
+      step = preferences[["projection_plot_percentage_cells_to_show"]][[
         "step"
       ]],
-      value = preferences[["gene_expression_plot_percentage_cells_to_show"]][[
+      value = preferences[["projection_plot_percentage_cells_to_show"]][[
         "default"
       ]]
     )

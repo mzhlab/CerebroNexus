@@ -125,29 +125,16 @@ server <- function(input, output, session) {
         1.0
       )
     ),
-    overview_plot_percentage_cells_to_show = list(
+    projection_plot_percentage_cells_to_show = list(
       min = 10,
       max = 100,
       step = 10,
       default = ifelse(
         exists('Cerebro.options') &&
           !is.null(Cerebro.options[[
-            'overview_default_percentage_cells_to_show'
+            'projection_default_percentage_cells_to_show'
           ]]),
-        Cerebro.options[['overview_default_percentage_cells_to_show']],
-        100
-      )
-    ),
-    gene_expression_plot_percentage_cells_to_show = list(
-      min = 10,
-      max = 100,
-      step = 10,
-      default = ifelse(
-        exists('Cerebro.options') &&
-          !is.null(Cerebro.options[[
-            'gene_expression_default_percentage_cells_to_show'
-          ]]),
-        Cerebro.options[['gene_expression_default_percentage_cells_to_show']],
+        Cerebro.options[['projection_default_percentage_cells_to_show']],
         100
       )
     ),

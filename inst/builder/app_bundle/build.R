@@ -27,7 +27,10 @@ builder_build_app <- function(
       viewer_content = request$viewer_content,
       projection_default_point_opacity = request$point_size[[
         "projection_point_opacity"
-      ]]
+      ]],
+      projection_default_percentage_cells_to_show = request$viewer_content[[
+        request$initial_dataset
+      ]][["overview_percentage_cells_to_show"]]
     ),
     overwrite = FALSE,
     quiet = TRUE,
