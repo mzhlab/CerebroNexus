@@ -648,12 +648,10 @@ tab_coordinated_views <- tabItem(
       )
     ),
 
-    ## Keep the lightweight client readout target for internal state updates, but
-    ## do not expose it on the landing surface. The expensive server-rendered
-    ## selected-cell plot/table has no UI target here and therefore does not run.
+    ## Keep the lightweight client readout target directly below the linked
+    ## panels; it is populated with the composition and clonotype summary.
     div(
       class = "cv-secondary-analysis",
-      style = "display:none",
       div(
         class = "cv-readout",
         id = "cv-readout",
@@ -794,6 +792,14 @@ tab_coordinated_views <- tabItem(
           )
         )
       )
+    ),
+
+    ## Detailed selected-cell plot/table follows the composition and Trekker
+    ## sections, keeping all selection-derived content together below the
+    ## linked panels.
+    div(
+      class = "cv-secondary-analysis",
+      shiny::uiOutput("coordviews_selected_cells_UI")
     ),
 
     tags$dialog(

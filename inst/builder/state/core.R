@@ -290,6 +290,20 @@ builder_upgrade_viewer_content_entry <- function(entry) {
     settings$spatial_point_appearance
   )
   entry$settings <- settings
+  ## Schema-1 entries created before the shared opacity control may contain a
+  ## missing or zero value.  Normalize that legacy field before the canonical
+  ## state validator sees it; current UI edits cannot produce an invalid value.
+  point_opacity <- suppressWarnings(as.numeric(settings$overview_point_opacity))
+  if (
+    length(point_opacity) != 1L ||
+      is.na(point_opacity) ||
+      !is.finite(point_opacity) ||
+      point_opacity < 0.1 ||
+      point_opacity > 1
+  ) {
+    settings$overview_point_opacity <- 1
+    entry$settings <- settings
+  }
   if (
     identical(settings$viewer_content_schema_version, 1L) &&
       !"overview_percentage_cells_to_show" %in% names(settings)
